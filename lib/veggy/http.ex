@@ -1,11 +1,18 @@
 defmodule Veggy.HTTP do
-  import Plug.Conn
+  use Plug.Router
 
-  def init(options), do: options
+  plug Plug.Logger
+  plug :match
+  plug :dispatch
 
-  def call(conn, _) do
+  get "/ping" do
     conn
     |> put_resp_header("Content-Type", "plain/text")
-    |> send_resp(200, "Hello World")
+    |> send_resp(200, "pong")
+  end
+
+  match _ do
+    conn
+    |> send_resp(400, "oops")
   end
 end
