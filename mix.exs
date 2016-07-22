@@ -11,12 +11,14 @@ defmodule Veggy.Mixfile do
   end
 
   def application do
-    [applications: [:logger, :cowboy, :plug],
+    [applications: [:logger, :mongodb, :poolboy, :cowboy, :plug],
      mod: {Veggy, []}]
   end
 
   defp deps do
     [{:cowboy, "~> 1.0"},
-     {:plug, "~> 1.2.0-rc.0"}]
+     {:plug, "~> 1.2.0-rc.0"},
+     {:mongodb, "~> 0.1.1"},
+     {:poolboy, "~> 1.5.1"}]
   end
 end

@@ -1,6 +1,19 @@
 defmodule Veggy do
   use Application
 
+  defmodule MongoDB do
+    use Mongo.Pool, name: __MODULE__, adapter: Mongo.Pool.Poolboy
+
+    def child_spec do
+      Supervisor.Spec.worker(__MODULE__, [[
+        hostname: System.get_env("MONGODB_HOST") || "localhost",
+        database: System.get_env("MONGODB_DBNAME") || "veggy",
+        username: System.get_env("MONGODB_USERNAME"),
+        password: System.get_env("MONGODB_PASSWORD"),
+      ]])
+    end
+  end
+
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
@@ -8,7 +21,8 @@ defmodule Veggy do
 
     # Define workers and child supervisors to be supervised
     children = [
-      Plug.Adapters.Cowboy.child_spec(:http, Veggy.HTTP, [], [port: 4000])
+      Plug.Adapters.Cowboy.child_spec(:http, Veggy.HTTP, [], [port: 4000]),
+      MongoDB.child_spec,
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
