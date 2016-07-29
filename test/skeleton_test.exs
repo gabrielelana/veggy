@@ -1,4 +1,4 @@
-defmodule Veggy.RoutesTest do
+defmodule Veggy.SkeletonTest do
   use ExUnit.Case, async: true
   use Plug.Test
 
