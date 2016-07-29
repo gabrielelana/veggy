@@ -21,8 +21,9 @@ defmodule Veggy do
 
     # Define workers and child supervisors to be supervised
     children = [
-      Plug.Adapters.Cowboy.child_spec(:http, Veggy.HTTP, [], [port: 4000]),
       MongoDB.child_spec,
+      worker(Veggy.Registry, []),
+      Plug.Adapters.Cowboy.child_spec(:http, Veggy.HTTP, [], [port: 4000]),
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html

@@ -34,6 +34,9 @@ defmodule Veggy.HTTP do
 
   post "/timer" do
     command = command_from(conn.params)
+    Veggy.Registry.dispatch(command)
+    Process.sleep(1000)
+
     conn
     |> put_resp_header("content-type", "application/json")
     |> put_resp_header("location", url_for(conn, "/commands/#{command.id}"))
@@ -53,8 +56,11 @@ defmodule Veggy.HTTP do
     Mongo.find(Veggy.MongoDB, collection, query) |> Enum.to_list |> List.first
   end
 
-  defp command_from(params) do
-    %{command: params["command"], id: Mongo.IdServer.new}
+  defp command_from(%{"command" => "StartPomodoro"}) do
+    %{command: "StartPomodoro",
+      aggregate_id: "timer/XXX",
+      aggregate_kind: "Timer",
+      id: Mongo.IdServer.new}
   end
 
   defp url_for(conn, path) do
