@@ -22,6 +22,8 @@ defmodule Veggy do
     # Define workers and child supervisors to be supervised
     children = [
       MongoDB.child_spec,
+      worker(Veggy.EventStore, []),
+      worker(Veggy.Timers, []),
       worker(Veggy.Registry, []),
       Plug.Adapters.Cowboy.child_spec(:http, Veggy.HTTP, [], [port: 4000]),
     ]

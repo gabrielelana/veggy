@@ -5,7 +5,7 @@ defmodule Veggy.RoutesTest do
   import Plug.Conn
 
   test "POST /timer" do
-    conn = conn(:post, "/timer", Poison.encode! %{command: "StartPomodoro"})
+    conn = conn(:post, "/timer", Poison.encode! %{command: "StartPomodoro", duration: 10})
     |> put_req_header("content-type", "application/json")
     |> call
 

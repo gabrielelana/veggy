@@ -56,10 +56,11 @@ defmodule Veggy.HTTP do
     Mongo.find(Veggy.MongoDB, collection, query) |> Enum.to_list |> List.first
   end
 
-  defp command_from(%{"command" => "StartPomodoro"}) do
+  defp command_from(%{"command" => "StartPomodoro"} = params) do
     %{command: "StartPomodoro",
       aggregate_id: "timer/XXX",
       aggregate_kind: "Timer",
+      duration: Map.get(params, "duration", 25*60*1000),
       id: Mongo.IdServer.new}
   end
 
