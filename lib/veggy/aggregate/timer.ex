@@ -2,7 +2,12 @@ defmodule Veggy.Aggregate.Timer do
   # TODO: @behaviour Veggy.Aggregate
   # TODO: use Veggy.Mongo.Aggregate, collection: "timer"
 
-  def fetch(id) do
+  def init(id) do
+    Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroEnded", aggregate_id: id}, &1))
+    []
+  end
+
+  def fetch(id, _) do
     %{id: id, ticking: false}
   end
 

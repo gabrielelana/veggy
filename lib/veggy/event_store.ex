@@ -6,12 +6,30 @@ defmodule Veggy.EventStore do
   end
 
   def emit(%{event: _} = event) do
-    IO.inspect({:emit, event})
-    GenServer.cast(__MODULE__, {:emit, event})
+    GenServer.cast(__MODULE__, {:event, event})
   end
 
-  def handle_cast({:emit, event}, state) do
+  def subscribe(pid, check) do
+    reference = make_ref
+    GenServer.cast(__MODULE__, {:subscribe, reference, check, pid})
+    reference
+  end
+
+  def unsubscribe(reference) do
+    GenServer.cast(__MODULE__, {:unsubscribe, reference})
+  end
+
+  def handle_cast({:event, event}, state) do
     IO.inspect({:received, event})
+    Enum.each(state, fn({_, {check, pid}}) ->
+      if check.(event), do: send(pid, {:event, event})
+    end)
     {:noreply, state}
+  end
+  def handle_cast({:subscribe, reference, check, pid}, state) do
+    {:noreply, Map.put(state, reference, {check, pid})}
+  end
+  def handle_cast({:unsubscribe, reference}, state) do
+    {:noreply, Map.delete(state, reference)}
   end
 end

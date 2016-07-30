@@ -1,5 +1,6 @@
 defmodule Veggy.Aggregate do
   use GenServer
+  # TODO: define callbacks for Aggregate behaviour
 
   def start_link(id, kind) do
     behaviour = Module.concat(Veggy.Aggregate, kind)
@@ -14,10 +15,13 @@ defmodule Veggy.Aggregate do
   end
 
   def handle_cast(%{command: _} = command, %{aggregate: nil} = state) do
-    handle_cast(command, %{state | aggregate: state.module.fetch(state.id)})
+    aggregate = state.module.init(state.id)
+    aggregate = state.module.fetch(state.id, aggregate)
+    handle_cast(command, %{state | aggregate: aggregate})
   end
   def handle_cast(%{command: _} = command, state) do
     IO.inspect({:before, command, state.aggregate})
+    Veggy.EventStore.emit(received(command))
     events = case state.module.handle(command, state.aggregate) do
                {:ok, event} -> [event, succeded(command)]
                {:error, reason} -> [failed(command, reason)]
@@ -25,15 +29,23 @@ defmodule Veggy.Aggregate do
     IO.inspect({:events, events})
     aggregate = Enum.reduce(events, state.aggregate, &state.module.on/2)
     IO.inspect({:after, command, aggregate})
-    # TODO: send events to event store
+    Enum.each(events, &Veggy.EventStore.emit/1)
     {:noreply, %{state | aggregate: aggregate}}
   end
 
-  defp succeded(%{command: _} = command) do
-    %{event: "CommandSucceeded", command_id: command.id}
+  def handle_info({:event, event}, state) do
+    IO.inspect({:before, event, state.aggregate})
+    aggregate = state.module.on(event, state.aggregate)
+    IO.inspect({:after, event, aggregate})
+    {:noreply, %{state | aggregate: aggregate}}
   end
 
-  defp failed(%{command: _} = command, reason) do
-    %{event: "CommandFailed", command_id: command.id, why: reason}
-  end
+  defp received(%{command: _} = command),
+    do: %{event: "CommandReceived", command_id: command.id, id: Mongo.IdServer.new}
+
+  defp succeded(%{command: _} = command),
+    do: %{event: "CommandSucceeded", command_id: command.id, id: Mongo.IdServer.new}
+
+  defp failed(%{command: _} = command, reason),
+    do: %{event: "CommandFailed", command_id: command.id, why: reason, id: Mongo.IdServer.new}
 end

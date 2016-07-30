@@ -35,7 +35,6 @@ defmodule Veggy.HTTP do
   post "/timer" do
     command = command_from(conn.params)
     Veggy.Registry.dispatch(command)
-    Process.sleep(1000)
 
     conn
     |> put_resp_header("content-type", "application/json")
