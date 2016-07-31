@@ -11,7 +11,7 @@ defmodule Veggy.Timers do
   end
 
   def handle_call({:start, duration, aggregate_id}, _from, pomodori) do
-    pomodoro_id = Mongo.IdServer.new
+    pomodoro_id = Veggy.UUID.new
     IO.inspect("Start pomodoro #{pomodoro_id} with duration of #{duration}ms")
     {:ok, reference} = :timer.send_after(duration, self, {:ended, pomodoro_id, aggregate_id})
     {:reply, {:ok, pomodoro_id}, Map.put(pomodori, pomodoro_id, reference)}
@@ -23,7 +23,7 @@ defmodule Veggy.Timers do
     EventStore.emit(%{event: "PomodoroEnded",
                       aggregate_id: aggregate_id,
                       pomodoro_id: pomodoro_id,
-                      id: Mongo.IdServer.new})
+                      id: Veggy.UUID.new})
     {:noreply, pomodori}
   end
 end

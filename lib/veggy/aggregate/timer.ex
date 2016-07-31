@@ -23,7 +23,7 @@ defmodule Veggy.Aggregate.Timer do
             command_id: command.id,
             aggregate_id: aggregate.id,
             duration: command.duration,
-            id: Mongo.IdServer.new}}
+            id: Veggy.UUID.new}}
   end
 
   def on(%{event: "PomodoroStarted"}, s), do: %{s | ticking: true}

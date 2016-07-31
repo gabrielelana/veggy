@@ -41,11 +41,11 @@ defmodule Veggy.Aggregate do
   end
 
   defp received(%{command: _} = command),
-    do: %{event: "CommandReceived", command_id: command.id, id: Mongo.IdServer.new}
+    do: %{event: "CommandReceived", command_id: command.id, id: Veggy.UUID.new}
 
   defp succeded(%{command: _} = command),
-    do: %{event: "CommandSucceeded", command_id: command.id, id: Mongo.IdServer.new}
+    do: %{event: "CommandSucceeded", command_id: command.id, id: Veggy.UUID.new}
 
   defp failed(%{command: _} = command, reason),
-    do: %{event: "CommandFailed", command_id: command.id, why: reason, id: Mongo.IdServer.new}
+    do: %{event: "CommandFailed", command_id: command.id, why: reason, id: Veggy.UUID.new}
 end

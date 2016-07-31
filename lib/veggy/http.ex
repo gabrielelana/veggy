@@ -1,15 +1,3 @@
-defimpl String.Chars, for: BSON.ObjectId do
-  def to_string(%BSON.ObjectId{value: value}) do
-    Base.encode16(value, case: :lower)
-  end
-end
-
-defimpl Poison.Encoder, for: BSON.ObjectId do
-  def encode(%BSON.ObjectId{} = oid, options) do
-    Poison.Encoder.BitString.encode(String.Chars.to_string(oid), options)
-  end
-end
-
 defmodule Veggy.HTTP do
   use Plug.Router
   require Logger
@@ -60,7 +48,7 @@ defmodule Veggy.HTTP do
       aggregate_id: "timer/XXX",
       aggregate_kind: "Timer",
       duration: Map.get(params, "duration", 25*60*1000),
-      id: Mongo.IdServer.new}
+      id: Veggy.UUID.new}
   end
 
   defp url_for(conn, path) do
