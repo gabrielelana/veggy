@@ -28,6 +28,7 @@ defmodule Veggy.Aggregate do
              end
     IO.inspect({:events, events})
     aggregate = Enum.reduce(events, state.aggregate, &state.module.on/2)
+    state.module.store(aggregate)
     IO.inspect({:after, command, aggregate})
     Enum.each(events, &Veggy.EventStore.emit/1)
     {:noreply, %{state | aggregate: aggregate}}
@@ -36,6 +37,7 @@ defmodule Veggy.Aggregate do
   def handle_info({:event, event}, state) do
     IO.inspect({:before, event, state.aggregate})
     aggregate = state.module.on(event, state.aggregate)
+    state.module.store(aggregate)
     IO.inspect({:after, event, aggregate})
     {:noreply, %{state | aggregate: aggregate}}
   end
