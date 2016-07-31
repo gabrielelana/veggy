@@ -23,7 +23,7 @@ defmodule Veggy do
     children = [
       MongoDB.child_spec,
       worker(Veggy.EventStore, []),
-      worker(Veggy.Timers, []),
+      worker(Veggy.Countdown, []),
       worker(Veggy.Registry, []),
       worker(Veggy.Projection, [Veggy.Projection.Pomodori]),
       Plug.Adapters.Cowboy.child_spec(:http, Veggy.HTTP, [], [port: 4000]),

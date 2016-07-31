@@ -1,4 +1,4 @@
-defmodule Veggy.Timers do
+defmodule Veggy.Countdown do
   use GenServer
   alias Veggy.EventStore
 
