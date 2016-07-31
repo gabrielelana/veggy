@@ -58,7 +58,7 @@ defmodule Veggy.Projection.Pomodori do
 
   def latest_pomodoro_for_timer(timer_id) do
     query = %{"timer_id" => timer_id}
-    options = [order_by: %{"started_at" => -1}, limit: 1]
+    options = [sort: %{"started_at" => -1}, limit: 1]
     case Mongo.find(Veggy.MongoDB, @collection, query, options) |> Enum.to_list do
       [] -> {:error, :not_found}
       [d] -> {:ok, d}
