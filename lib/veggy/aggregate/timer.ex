@@ -1,7 +1,7 @@
 defmodule Veggy.Aggregate.Timer do
   # TODO: @behaviour Veggy.Aggregate
-  # TODO: use Veggy.Mongo.Aggregate, collection: "timer"
-  @collection "timer"
+  # TODO: use Veggy.Mongo.Aggregate, collection: "aggregate.timers"
+  @collection "aggregate.timers"
 
   def init(id) do
     Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroEnded", aggregate_id: id}, &1))

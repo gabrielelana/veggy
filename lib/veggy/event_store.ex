@@ -20,7 +20,8 @@ defmodule Veggy.EventStore do
   end
 
   def handle_cast({:event, event}, state) do
-    IO.inspect({:received, event})
+    event = Map.put(event, :received_at, DateTime.utc_now)
+    # IO.inspect({:received, event})
     Enum.each(state, fn({_, {check, pid}}) ->
       if check.(event), do: send(pid, {:event, event})
     end)

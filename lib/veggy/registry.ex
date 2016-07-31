@@ -10,11 +10,11 @@ defmodule Veggy.Registry do
   end
 
   def handle_cast({:dispatch, %{aggregate_id: id, aggregate_kind: kind} = command}, registry) do
-    IO.inspect({:dispatch, command, :in, registry})
+    # IO.inspect({:dispatch, command, :in, registry})
     result = Map.get_and_update(registry, id, &spawn_aggregate(&1, id, kind))
-    IO.inspect(result)
+    # IO.inspect(result)
     {pid, registry} = result
-    IO.inspect("Ask aggregate with pid #{inspect(pid)} to handle command")
+    # IO.inspect("Ask aggregate with pid #{inspect(pid)} to handle command")
     Veggy.Aggregate.handle(pid, command)
     {:noreply, registry}
   end

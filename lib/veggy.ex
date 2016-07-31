@@ -25,6 +25,7 @@ defmodule Veggy do
       worker(Veggy.EventStore, []),
       worker(Veggy.Timers, []),
       worker(Veggy.Registry, []),
+      worker(Veggy.Projection, [Veggy.Projection.Pomodori]),
       Plug.Adapters.Cowboy.child_spec(:http, Veggy.HTTP, [], [port: 4000]),
     ]
 
