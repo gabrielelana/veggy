@@ -23,6 +23,7 @@ defmodule Veggy.HTTP do
   post "/timer" do
     command = command_from(conn.params)
     Veggy.Registry.dispatch(command)
+
     conn
     |> put_resp_header("content-type", "application/json")
     |> put_resp_header("location", url_for(conn, "/commands/#{command.id}"))
