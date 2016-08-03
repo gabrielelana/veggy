@@ -1,8 +1,9 @@
 var websocket;
+var heartbeat;
 
 $(document).ready(function() {
     $('#server').val("ws://" + window.location.host + "/ws");
-    if(!("WebSocket" in window)){
+    if (!("WebSocket" in window)) {
         $('#status').append('<p><span style="color: red;">websockets are not supported </span></p>');
         $("#navigation").hide();
     } else {
@@ -17,10 +18,10 @@ function connect() {
     wsHost = $("#server").val()
     websocket = new WebSocket(wsHost);
     showScreen('<b>Connecting to: ' +  wsHost + '</b>');
-    websocket.onopen = function(evt) { onOpen(evt) };
-    websocket.onclose = function(evt) { onClose(evt) };
-    websocket.onmessage = function(evt) { onMessage(evt) };
-    websocket.onerror = function(evt) { onError(evt) };
+    websocket.onopen = function(evt) { onOpen(evt); };
+    websocket.onclose = function(evt) { onClose(evt); };
+    websocket.onmessage = function(evt) { onMessage(evt); };
+    websocket.onerror = function(evt) { onError(evt); };
 };
 
 function disconnect() {
@@ -28,7 +29,7 @@ function disconnect() {
 };
 
 function toggle_connection() {
-    if(websocket.readyState == websocket.OPEN){
+    if (websocket.readyState == websocket.OPEN) {
         disconnect();
     } else {
         connect();
@@ -36,8 +37,8 @@ function toggle_connection() {
 };
 
 function sendTxt() {
-    if(websocket.readyState == websocket.OPEN){
-        txt = $("#send_txt").val();
+    if (websocket.readyState == websocket.OPEN) {
+        var txt = $("#send_txt").val();
         websocket.send(txt);
         showScreen('sending: ' + txt);
     } else {
@@ -49,14 +50,21 @@ function onOpen(evt) {
     showScreen('<span style="color: green;">CONNECTED </span>');
     $("#connected").fadeIn('slow');
     $("#content").fadeIn('slow');
+    heartbeat = setInterval(function() {
+        if (websocket.readyState == websocket.OPEN) {
+            websocket.send("ping");
+        }
+    }, 1000);
 };
 
 function onClose(evt) {
+    clearInterval(heartbeat);
     showScreen('<span style="color: red;">DISCONNECTED </span>');
 };
 
 function onMessage(evt) {
-    showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>');
+    var event = JSON.parse(evt.data);
+    showScreen('<span style="color: blue;">' + event.event + ': ' + evt.data + '</span>');
 };
 
 function onError(evt) {
@@ -67,7 +75,6 @@ function showScreen(txt) {
     $('#output').prepend('<p>' + txt + '</p>');
 };
 
-function clearScreen()
-{
+function clearScreen() {
     $('#output').html("");
 };

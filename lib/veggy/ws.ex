@@ -7,19 +7,20 @@ defmodule Veggy.WS do
   end
 
   def websocket_init(_type, req, _opts) do
-    :timer.send_interval(5000, self, {:timer, "Hello"})
+    Veggy.EventStore.subscribe(self, &is_map/1)
     {:ok, req, %{}, @timeout}
   end
 
-  def websocket_handle({:text, message}, req, state) do
-    {:reply, {:text, "He said `#{message}`"}, req, state}
+  def websocket_handle({:text, "ping"}, req, state) do
+    IO.inspect("PING from WS")
+    {:reply, {:text, "pong"}, req, state}
   end
   def websocket_handle({_kind, _message}, req, state) do
     {:ok, req, state}
   end
 
-  def websocket_info({:timer, message}, req, state) do
-    {:reply, {:text, "Timer said `#{message}`"}, req, state}
+  def websocket_info({:event, event}, req, state) do
+    {:reply, {:text, Poison.encode!(event)}, req, state}
   end
   def websocket_info(_message, req, state) do
     {:ok, req, state}
