@@ -24,6 +24,7 @@ defmodule Veggy.HTTP do
   post "/timer" do
     command = command_from(conn.params)
     Veggy.Registry.dispatch(command)
+    # Veggy.Aggregates.dispatch(conn, Veggy.Aggregate.Timer)
 
     conn
     |> put_resp_header("content-type", "application/json")
@@ -33,24 +34,32 @@ defmodule Veggy.HTTP do
 
   get "/timer/pomodori/latest" do
     timer_id = "timer/XXX"
-    {:ok, pomodoro} = Veggy.Projection.Pomodori.latest_pomodoro_for_timer(timer_id)
-    {date, {h, m, s, _}} = BSON.DateTime.to_datetime(pomodoro["started_at"])
-    started_at = :calendar.datetime_to_gregorian_seconds({date, {h, m, s}}) - 62167219200
-    {:ok, started_at} = DateTime.from_unix(started_at)
-    response = %{started_at: started_at,
-                 current_time: DateTime.utc_now,
-                 ticking: pomodoro["ticking"]}
-
-    conn
-    |> put_resp_header("content-type", "application/json")
-    |> put_resp_header("location", url_for(conn, "/pomodori/#{pomodoro["pomodoro_id"]}"))
-    |> send_resp(200, Poison.encode!(response))
+    case Veggy.Projection.Pomodori.latest_pomodoro_for_timer(timer_id) do
+      {:ok, pomodoro} ->
+        response = %{started_at: to_datetime(pomodoro["started_at"]),
+                     current_time: DateTime.utc_now,
+                     ticking: pomodoro["ticking"]}
+        conn
+        |> put_resp_header("content-type", "application/json")
+        |> put_resp_header("location", url_for(conn, "/pomodori/#{pomodoro["pomodoro_id"]}"))
+        |> send_resp(200, Poison.encode!(response))
+      {:error, :not_found} ->
+        conn
+        |> send_resp(404, "")
+    end
   end
 
   match _ do
     conn
     |> put_resp_header("content-type", "plain/text")
     |> send_resp(404, "oops")
+  end
+
+  defp to_datetime(%BSON.DateTime{} = bdt) do
+    {date, {h, m, s, _}} = BSON.DateTime.to_datetime(bdt)
+    ts = :calendar.datetime_to_gregorian_seconds({date, {h, m, s}}) - 62167219200
+    {:ok, dt} = DateTime.from_unix(ts)
+    dt
   end
 
   defp count_up(counter_name) do
