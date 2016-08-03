@@ -26,12 +26,19 @@ defmodule Veggy do
       worker(Veggy.Countdown, []),
       worker(Veggy.Registry, []),
       worker(Veggy.Projection, [Veggy.Projection.Pomodori]),
-      Plug.Adapters.Cowboy.child_spec(:http, Veggy.HTTP, [], [port: 4000]),
+      Plug.Adapters.Cowboy.child_spec(:http, Veggy.HTTP, [],
+        [port: 4000, dispatch: dispatch]),
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Veggy.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  defp dispatch do
+    websocket = {"/ws", Veggy.WS, []}
+    otherwise = {:_, Plug.Adapters.Cowboy.Handler, {Veggy.HTTP, []}}
+    [{:_, [websocket, otherwise]}]
   end
 end

@@ -3,6 +3,7 @@ defmodule Veggy.HTTP do
   require Logger
 
   plug Plug.Logger
+  plug Plug.Static, at: "/", from: "priv/static"
   plug Plug.Parsers, parsers: [:json], pass: ["application/json"], json_decoder: Poison
   plug :match
   plug :dispatch
@@ -23,6 +24,7 @@ defmodule Veggy.HTTP do
   post "/timer" do
     command = command_from(conn.params)
     Veggy.Registry.dispatch(command)
+
     conn
     |> put_resp_header("content-type", "application/json")
     |> put_resp_header("location", url_for(conn, "/commands/#{command.id}"))
