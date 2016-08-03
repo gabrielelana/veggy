@@ -49,6 +49,19 @@ defmodule Veggy.HTTP do
     end
   end
 
+  get "/commands/:command_id" do
+    command_id = %BSON.ObjectId{value: Base.decode16!(command_id, case: :lower)}
+    case Veggy.Projection.Commands.status_of(command_id) do
+      {:ok, command} ->
+        conn
+        |> put_resp_header("content-type", "application/json")
+        |> send_resp(200, Poison.encode!(command))
+      {:error, :not_found} ->
+        conn
+        |> send_resp(404, "")
+    end
+  end
+
   match _ do
     conn
     |> put_resp_header("content-type", "plain/text")

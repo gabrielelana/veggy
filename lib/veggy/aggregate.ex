@@ -26,7 +26,7 @@ defmodule Veggy.Aggregate do
                {:ok, event} -> [event, succeded(command)]
                {:error, reason} -> [failed(command, reason)]
              end
-    # IO.inspect({:events, events})
+    IO.inspect({:events, events})
     aggregate = Enum.reduce(events, state.aggregate, &state.module.on/2)
     state.module.store(aggregate)
     # IO.inspect({:after, command, aggregate})

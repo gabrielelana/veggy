@@ -14,12 +14,6 @@ defmodule Veggy do
     end
   end
 
-
-
-
-
-
-
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
@@ -31,7 +25,8 @@ defmodule Veggy do
       worker(Veggy.EventStore, []),
       worker(Veggy.Countdown, []),
       worker(Veggy.Registry, []),
-      worker(Veggy.Projection, [Veggy.Projection.Pomodori]),
+      worker(Veggy.Projection, [Veggy.Projection.Pomodori], id: Pomodori),
+      worker(Veggy.Projection, [Veggy.Projection.Commands], id: Commands),
       Plug.Adapters.Cowboy.child_spec(:http, Veggy.HTTP, [],
         [port: 4000, dispatch: dispatch]),
     ]
