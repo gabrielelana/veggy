@@ -5,6 +5,7 @@ defmodule Veggy.HTTP do
   plug Plug.Logger
   plug Plug.Static, at: "/", from: "priv/static"
   plug Plug.Parsers, parsers: [:json], pass: ["application/json"], json_decoder: Poison
+  plug CORSPlug
   plug :match
   plug :dispatch
 
