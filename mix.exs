@@ -17,7 +17,7 @@ defmodule Veggy.Mixfile do
 
   defp deps do
     [{:cowboy, "~> 1.0"},
-     {:plug, "~> 1.2.0-rc.0"},
+     {:plug, "~> 1.1"},
      {:mongodb, "~> 0.1.1"},
      {:poolboy, "~> 1.5.1"},
      {:poison, "~> 2.2.0"},
