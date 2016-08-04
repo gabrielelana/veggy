@@ -5,12 +5,10 @@ defmodule Veggy.Aggregate do
   def start_link(id, kind) do
     behaviour = Module.concat(Veggy.Aggregate, kind)
     # TODO: check it implements the behaviour
-    # IO.inspect("Start aggregate process with #{behaviour} behaviour")
     GenServer.start_link(__MODULE__, %{id: id, module: behaviour, aggregate: nil})
   end
 
   def handle(pid, %{command: _} = command) do
-    # IO.inspect("Asked to handle command with behaviour")
     GenServer.cast(pid, command)
   end
 
@@ -20,25 +18,20 @@ defmodule Veggy.Aggregate do
     handle_cast(command, %{state | aggregate: aggregate})
   end
   def handle_cast(%{command: _} = command, state) do
-    # IO.inspect({:before, command, state.aggregate})
     Veggy.EventStore.emit(received(command))
     events = case state.module.handle(command, state.aggregate) do
                {:ok, event} -> [event, succeded(command)]
                {:error, reason} -> [failed(command, reason)]
              end
-    IO.inspect({:events, events})
     aggregate = Enum.reduce(events, state.aggregate, &state.module.on/2)
     state.module.store(aggregate)
-    # IO.inspect({:after, command, aggregate})
     Enum.each(events, &Veggy.EventStore.emit/1)
     {:noreply, %{state | aggregate: aggregate}}
   end
 
   def handle_info({:event, event}, state) do
-    # IO.inspect({:before, event, state.aggregate})
     aggregate = state.module.on(event, state.aggregate)
     state.module.store(aggregate)
-    # IO.inspect({:after, event, aggregate})
     {:noreply, %{state | aggregate: aggregate}}
   end
 
