@@ -23,9 +23,7 @@ defmodule Veggy.HTTP do
   end
 
   post "/timer" do
-    command = command_from(conn.params)
-    Veggy.Registry.dispatch(command)
-    # Veggy.Aggregates.dispatch(conn, Veggy.Aggregate.Timer)
+    {:ok, command} = Veggy.Registry.dispatch(conn, Veggy.Aggregate.Timer)
 
     conn
     |> put_resp_header("content-type", "application/json")
@@ -81,14 +79,6 @@ defmodule Veggy.HTTP do
     query = %{name: counter_name}
     Mongo.update_one(Veggy.MongoDB, collection, query, %{"$inc": %{counter: 1}}, upsert: true)
     Mongo.find(Veggy.MongoDB, collection, query) |> Enum.to_list |> List.first
-  end
-
-  defp command_from(%{"command" => "StartPomodoro"} = params) do
-    %{command: "StartPomodoro",
-      aggregate_id: "timer/XXX",
-      aggregate_kind: "Timer",
-      duration: Map.get(params, "duration", 25*60*1000),
-      id: Veggy.UUID.new}
   end
 
   defp url_for(conn, path) do

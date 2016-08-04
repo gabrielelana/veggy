@@ -1,7 +1,16 @@
 defmodule Veggy.Aggregate.Timer do
-  # TODO: @behaviour Veggy.Aggregate
-  # TODO: use Veggy.Mongo.Aggregate, collection: "aggregate.timers"
+  # @behaviour Veggy.Aggregate
+  # use Veggy.Mongo.Aggregate, collection: "aggregate.timers"
+
   @collection "aggregate.timers"
+
+  def route(%Plug.Conn{params: %{"command" => "StartPomodoro"} = params}) do
+    {:ok, %{command: "StartPomodoro",
+            aggregate_id: "timer/XXX",
+            aggregate_module: __MODULE__,
+            duration: Map.get(params, "duration", 25*60*1000),
+            id: Veggy.UUID.new}}
+  end
 
   def init(id) do
     Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroEnded", aggregate_id: id}, &1))

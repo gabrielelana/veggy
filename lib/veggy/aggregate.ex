@@ -1,11 +1,33 @@
 defmodule Veggy.Aggregate do
   use GenServer
-  # TODO: define callbacks for Aggregate behaviour
 
-  def start_link(id, kind) do
-    behaviour = Module.concat(Veggy.Aggregate, kind)
-    # TODO: check it implements the behaviour
-    GenServer.start_link(__MODULE__, %{id: id, module: behaviour, aggregate: nil})
+  # @type command :: Map.t
+  # @type event :: Map.t
+
+  # @callback route(request::any) ::
+  #   {:ok, command} |
+  #   {:error, reason::any} |
+  #   :unknown
+
+  # @callback init(id::any) ::
+  #   {:ok, default_state::any} |
+  #   {:error, reason::any}
+
+  # @callback fetch(id::any, default_state::any) ::
+  #   {:ok, state::any} |
+  #   {:error, reason::any}
+
+  # @callback handle(command, state::any) ::
+  #   {:ok, [event]} |
+  #   {:ok, [event], [command]} |
+  #   {:forward, command} |
+  #   {:fork, [command]}
+
+  # @callback process(event, state::any) ::
+  #   state::any
+
+  def start_link(id, module) do
+    GenServer.start_link(__MODULE__, %{id: id, module: module, aggregate: nil})
   end
 
   def handle(pid, %{command: _} = command) do
