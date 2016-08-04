@@ -32,7 +32,7 @@ defmodule Veggy.Aggregate.Timer do
             id: Veggy.UUID.new}}
   end
 
-  def on(%{event: "PomodoroStarted"}, s), do: %{s | "ticking" => true}
-  def on(%{event: "PomodoroEnded"}, s), do: %{s | "ticking" => false}
-  def on(_, s), do: s
+  def process(%{event: "PomodoroStarted"}, s), do: %{s | "ticking" => true}
+  def process(%{event: "PomodoroEnded"}, s), do: %{s | "ticking" => false}
+  def process(_, s), do: s
 end

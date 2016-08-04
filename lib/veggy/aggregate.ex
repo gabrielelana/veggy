@@ -12,27 +12,31 @@ defmodule Veggy.Aggregate do
     GenServer.cast(pid, command)
   end
 
-  def handle_cast(%{command: _} = command, %{aggregate: nil} = state) do
-    aggregate = state.module.init(state.id)
-    aggregate = state.module.fetch(state.id, aggregate)
-    handle_cast(command, %{state | aggregate: aggregate})
-  end
+  def handle_cast(%{command: _} = command, %{aggregate: nil} = state),
+    do: handle_cast(command, %{state | aggregate: do_init(state)})
   def handle_cast(%{command: _} = command, state) do
     Veggy.EventStore.emit(received(command))
     events = case state.module.handle(command, state.aggregate) do
                {:ok, event} -> [event, succeded(command)]
                {:error, reason} -> [failed(command, reason)]
              end
-    aggregate = Enum.reduce(events, state.aggregate, &state.module.on/2)
+    aggregate = Enum.reduce(events, state.aggregate, &state.module.process/2)
     state.module.store(aggregate)
     Enum.each(events, &Veggy.EventStore.emit/1)
     {:noreply, %{state | aggregate: aggregate}}
   end
 
+  def handle_info({:event, _} = event, %{aggregate: nil} = state),
+    do: handle_info(event, %{state | aggregate: do_init(state)})
   def handle_info({:event, event}, state) do
-    aggregate = state.module.on(event, state.aggregate)
+    aggregate = state.module.process(event, state.aggregate)
     state.module.store(aggregate)
     {:noreply, %{state | aggregate: aggregate}}
+  end
+
+  defp do_init(state) do
+    aggregate = state.module.init(state.id)
+    aggregate = state.module.fetch(state.id, aggregate)
   end
 
   defp received(%{command: _} = command),
