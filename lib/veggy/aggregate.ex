@@ -37,12 +37,16 @@ defmodule Veggy.Aggregate do
   def handle_cast(%{command: _} = command, %{aggregate: nil} = state),
     do: handle_cast(command, %{state | aggregate: do_init(state)})
   def handle_cast(%{command: _} = command, state) do
+    IO.inspect({"COMMAND", command})
     Veggy.EventStore.emit(received(command))
     events = case state.module.handle(command, state.aggregate) do
                {:ok, event} -> [event, succeded(command)]
                {:error, reason} -> [failed(command, reason)]
              end
+    IO.inspect({"STATE OF #{state.module} BEFORE", state.aggregate})
+    IO.inspect({"EVENTS", events})
     aggregate = Enum.reduce(events, state.aggregate, &state.module.process/2)
+    IO.inspect({"STATE OF #{state.module} AFTER", aggregate})
     state.module.store(aggregate)
     Enum.each(events, &Veggy.EventStore.emit/1)
     {:noreply, %{state | aggregate: aggregate}}
@@ -56,9 +60,14 @@ defmodule Veggy.Aggregate do
     {:noreply, %{state | aggregate: aggregate}}
   end
 
+  def terminate(_, _) do
+    :ok
+  end
+
   defp do_init(state) do
     aggregate = state.module.init(state.id)
     aggregate = state.module.fetch(state.id, aggregate)
+    aggregate
   end
 
   defp received(%{command: _} = command),

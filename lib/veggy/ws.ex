@@ -12,7 +12,6 @@ defmodule Veggy.WS do
   end
 
   def websocket_handle({:text, "ping"}, req, state) do
-    IO.inspect("PING from WS")
     {:reply, {:text, "pong"}, req, state}
   end
   def websocket_handle({_kind, _message}, req, state) do

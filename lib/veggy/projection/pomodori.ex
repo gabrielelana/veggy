@@ -34,7 +34,7 @@ defmodule Veggy.Projection.Pomodori do
   end
 
   def process(%{event: "PomodoroStarted"} = event, %{}) do
-    IO.inspect("Process PomodoroStarted")
+    # IO.inspect("Process PomodoroStarted")
     received_at = event.received_at
     started_at = BSON.DateTime.from_datetime(
       {{received_at.year, received_at.month, received_at.day},
@@ -46,7 +46,7 @@ defmodule Veggy.Projection.Pomodori do
       "duration" => event.duration}
   end
   def process(%{event: "PomodoroEnded"} = event, record) do
-    IO.inspect("Process PomodoroEnded")
+    # IO.inspect("Process PomodoroEnded")
     received_at = event.received_at
     ended_at = BSON.DateTime.from_datetime(
       {{received_at.year, received_at.month, received_at.day},

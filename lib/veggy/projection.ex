@@ -11,11 +11,11 @@ defmodule Veggy.Projection do
   end
 
   def handle_info({:event, event}, state) do
-    IO.inspect({:received, event})
+    # IO.inspect({:received, event})
     record = state.module.fetch(event)
-    IO.inspect({:fetched, record})
+    # IO.inspect({:fetched, record})
     record = state.module.process(event, record)
-    IO.inspect({:processed, record})
+    # IO.inspect({:processed, record})
     state.module.store(record)
     # TODO: remember where we arrived at processing events
     {:noreply, state}
