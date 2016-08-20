@@ -1,10 +1,12 @@
 defmodule Veggy.EventStore do
   use GenServer
 
-  def start_link do
-    GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
-  end
+  @collection "events"
 
+  def start_link do
+    offset = offset_of_last_event
+    GenServer.start_link(__MODULE__, %{offset: offset, subscriptions: %{}}, name: __MODULE__)
+  end
   def emit(%{event: _} = event) do
     GenServer.cast(__MODULE__, {:event, event})
   end
@@ -19,18 +21,43 @@ defmodule Veggy.EventStore do
     GenServer.cast(__MODULE__, {:unsubscribe, reference})
   end
 
-  def handle_cast({:event, event}, state) do
-    event = Map.put(event, :received_at, DateTime.utc_now)
-    # IO.inspect({:received, event})
-    Enum.each(state, fn({_, {check, pid}}) ->
-      if check.(event), do: send(pid, {:event, event})
-    end)
-    {:noreply, state}
+  def handle_cast({:event, event}, %{subscriptions: subscriptions, offset: offset} = state) do
+    event
+    |> enrich(offset)
+    |> store
+    |> dispatch(subscriptions)
+
+    {:noreply, %{state | offset: offset + 1}}
   end
-  def handle_cast({:subscribe, reference, check, pid}, state) do
-    {:noreply, Map.put(state, reference, {check, pid})}
+  def handle_cast({:subscribe, reference, check, pid}, %{subscriptions: subscriptions} = state) do
+    {:noreply, %{state | subscriptions: Map.put(subscriptions, reference, {check, pid})}}
   end
-  def handle_cast({:unsubscribe, reference}, state) do
-    {:noreply, Map.delete(state, reference)}
+  def handle_cast({:unsubscribe, reference}, %{subscriptions: subscriptions} = state) do
+    {:noreply, %{state | subscriptions: Map.delete(subscriptions, reference)}}
+  end
+
+  defp enrich(event, offset) do
+    event
+    |> Map.put(:received_at, Veggy.MongoDB.DateTime.utc_now)
+    |> Map.put(:offset, offset)
+  end
+
+  defp store(event) do
+    Mongo.save_one(Veggy.MongoDB, @collection, event)
+    event
+  end
+
+  defp dispatch(event, subscriptions) do
+    for {_, {check, pid}} <- subscriptions, check.(event) do
+      send(pid, {:event, event})
+    end
+  end
+
+  defp offset_of_last_event do
+    last_event = Mongo.find(Veggy.MongoDB, @collection, %{}, sort: [offset: -1], limit: 1) |> Enum.to_list
+    case last_event do
+      [] -> 0
+      [event] -> event["offset"]
+    end
   end
 end

@@ -13,6 +13,16 @@ defmodule Veggy do
       ]])
     end
 
+    defmodule DateTime do
+      def utc_now, do: from_datetime(Elixir.DateTime.utc_now)
+
+      def from_datetime(dt) do
+        BSON.DateTime.from_datetime(
+          {{dt.year, dt.month, dt.day},
+           {dt.hour, dt.minute, dt.second, 0}})
+      end
+    end
+
     defp dbname do
       case Mix.env do
         :prod -> "veggy"
