@@ -7,10 +7,17 @@ defmodule Veggy do
     def child_spec do
       Supervisor.Spec.worker(__MODULE__, [[
         hostname: System.get_env("MONGODB_HOST") || "localhost",
-        database: System.get_env("MONGODB_DBNAME") || "veggy",
+        database: System.get_env("MONGODB_DBNAME") || dbname,
         username: System.get_env("MONGODB_USERNAME"),
         password: System.get_env("MONGODB_PASSWORD"),
       ]])
+    end
+
+    defp dbname do
+      case Mix.env do
+        :prod -> "veggy"
+        env -> "veggy_#{env}"
+      end
     end
   end
 
