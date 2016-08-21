@@ -5,15 +5,16 @@ defmodule Veggy.RoutesTest do
   import Plug.Conn
 
   test "StartPomodoro" do
-    timer_id = Veggy.UUID.new
     Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroEnded"}, &1))
 
-    conn = conn(:post, "/timers/#{timer_id}", Poison.encode! %{command: "StartPomodoro", duration: 10})
+    timer_id = Veggy.UUID.new |> to_string
+    command = %{command: "StartPomodoro", timer_id: timer_id, duration: 10}
+    conn = conn(:post, "/commands", Poison.encode! command)
     |> put_req_header("content-type", "application/json")
     |> call
 
     assert_command_received(conn)
-    assert_receive {:event, %{event: "PomodoroEnded"}}
+    assert_receive {:event, %{event: "PomodoroEnded", aggregate_id: ^timer_id}}
   end
 
   test "Login" do
