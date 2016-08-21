@@ -1,4 +1,4 @@
-defmodule Veggy.Registry do
+defmodule Veggy.Aggregates do
   use GenServer
 
   def start_link(modules) do

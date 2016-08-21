@@ -23,7 +23,7 @@ defmodule Veggy.HTTP do
   end
 
   post "/commands" do
-    case Veggy.Registry.dispatch(conn) do
+    case Veggy.Aggregates.dispatch(conn) do
       {:ok, command} ->
         conn
         |> put_resp_header("content-type", "application/json")
