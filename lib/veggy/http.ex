@@ -22,7 +22,8 @@ defmodule Veggy.HTTP do
     |> send_resp(200, "#{counter}")
   end
 
-  post "/timer" do
+  post "/timers/:id" do
+    conn = %{conn | params: Map.put(conn.params, "timer_id", id)}
     {:ok, command} = Veggy.Registry.dispatch(conn)
 
     conn
@@ -40,8 +41,7 @@ defmodule Veggy.HTTP do
     |> send_resp(201, Poison.encode!(command))
   end
 
-  get "/timer/pomodori/latest" do
-    timer_id = "timer/XXX"
+  get "/timers/:timer_id/pomodori/latest" do
     case Veggy.Projection.Pomodori.latest_pomodoro_for_timer(timer_id) do
       {:ok, pomodoro} ->
         response = %{started_at: to_datetime(pomodoro["started_at"]),

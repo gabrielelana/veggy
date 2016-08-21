@@ -56,8 +56,8 @@ defmodule Veggy.EventStore do
   defp offset_of_last_event do
     last_event = Mongo.find(Veggy.MongoDB, @collection, %{}, sort: [offset: -1], limit: 1) |> Enum.to_list
     case last_event do
-      [] -> 0
       [event] -> event["offset"]
+      _ -> 0
     end
   end
 end

@@ -4,10 +4,11 @@ defmodule Veggy.RoutesTest do
 
   import Plug.Conn
 
-  test "POST /timer" do
+  test "StartPomodoro" do
+    timer_id = Veggy.UUID.new
     Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroEnded"}, &1))
 
-    conn = conn(:post, "/timer", Poison.encode! %{command: "StartPomodoro", duration: 10})
+    conn = conn(:post, "/timers/#{timer_id}", Poison.encode! %{command: "StartPomodoro", duration: 10})
     |> put_req_header("content-type", "application/json")
     |> call
 

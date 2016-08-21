@@ -34,25 +34,15 @@ defmodule Veggy.Projection.Pomodori do
   end
 
   def process(%{event: "PomodoroStarted"} = event, %{}) do
-    # IO.inspect("Process PomodoroStarted")
-    received_at = event.received_at
-    started_at = BSON.DateTime.from_datetime(
-      {{received_at.year, received_at.month, received_at.day},
-       {received_at.hour, received_at.minute, received_at.second, 0}})
     %{"pomodoro_id" => event.pomodoro_id,
       "timer_id" => event.aggregate_id,
-      "started_at" => started_at,
+      "started_at" => event.received_at,
       "ticking" => true,
       "duration" => event.duration}
   end
   def process(%{event: "PomodoroEnded"} = event, record) do
-    # IO.inspect("Process PomodoroEnded")
-    received_at = event.received_at
-    ended_at = BSON.DateTime.from_datetime(
-      {{received_at.year, received_at.month, received_at.day},
-       {received_at.hour, received_at.minute, received_at.second, 0}})
     record
-    |> Map.put("ended_at", ended_at)
+    |> Map.put("ended_at", event.received_at)
     |> Map.put("ticking", false)
   end
 
