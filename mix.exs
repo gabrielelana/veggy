@@ -21,6 +21,7 @@ defmodule Veggy.Mixfile do
      {:mongodb, "~> 0.1.1"},
      {:poolboy, "~> 1.5.1"},
      {:poison, "~> 2.2.0"},
+     {:inflex, "~> 1.7.0"},
      {:cors_plug, "~> 1.1"}]
   end
 end

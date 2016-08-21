@@ -1,36 +1,6 @@
 defmodule Veggy do
   use Application
 
-  defmodule MongoDB do
-    use Mongo.Pool, name: __MODULE__, adapter: Mongo.Pool.Poolboy
-
-    def child_spec do
-      Supervisor.Spec.worker(__MODULE__, [[
-        hostname: System.get_env("MONGODB_HOST") || "localhost",
-        database: System.get_env("MONGODB_DBNAME") || dbname,
-        username: System.get_env("MONGODB_USERNAME"),
-        password: System.get_env("MONGODB_PASSWORD"),
-      ]])
-    end
-
-    defmodule DateTime do
-      def utc_now, do: from_datetime(Elixir.DateTime.utc_now)
-
-      def from_datetime(dt) do
-        BSON.DateTime.from_datetime(
-          {{dt.year, dt.month, dt.day},
-           {dt.hour, dt.minute, dt.second, 0}})
-      end
-    end
-
-    defp dbname do
-      case Mix.env do
-        :prod -> "veggy"
-        env -> "veggy_#{env}"
-      end
-    end
-  end
-
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
@@ -38,7 +8,7 @@ defmodule Veggy do
 
     # Define workers and child supervisors to be supervised
     children = [
-      MongoDB.child_spec,
+      Veggy.MongoDB.child_spec,
       worker(Veggy.EventStore, []),
       worker(Veggy.Countdown, []),
       worker(Veggy.Aggregates, [[Veggy.Aggregate.Timer, Veggy.Aggregate.User]]),

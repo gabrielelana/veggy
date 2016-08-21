@@ -1,8 +1,6 @@
 defmodule Veggy.Aggregate.Timer do
   # @behaviour Veggy.Aggregate
-  # use Veggy.Mongo.Aggregate, collection: "aggregate.timers"
-
-  @collection "aggregate.timers"
+  use Veggy.MongoDB.Aggregate, collection: "aggregate.timers"
 
   def route(%Plug.Conn{params: %{"command" => "StartPomodoro"} = params}) do
     {:ok, %{command: "StartPomodoro",
@@ -16,19 +14,6 @@ defmodule Veggy.Aggregate.Timer do
   def init(id) do
     Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroEnded", aggregate_id: ^id}, &1))
     %{"id" => id, "ticking" => false}
-  end
-
-  def fetch(id, initial) do
-    case Mongo.find(Veggy.MongoDB, @collection, %{"_id" => id}) |> Enum.to_list do
-      [] -> initial
-      [d] -> d |> Map.put("id", d["_id"]) |> Map.delete("_id")
-    end
-  end
-
-  def store(aggregate) do
-    aggregate = aggregate |> Map.put("_id", aggregate["id"]) |> Map.delete("id")
-    {:ok, _} = Mongo.update_one(Veggy.MongoDB, @collection,
-      %{"_id" => aggregate["_id"]}, %{"$set" => aggregate}, upsert: true)
   end
 
   def handle(%{command: "StartPomodoro"}, %{"ticking" => true}), do: {:error, "Pomodoro is ticking"}

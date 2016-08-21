@@ -19,7 +19,7 @@ defmodule Veggy.Countdown do
 
   def handle_info({:ended, pomodoro_id, aggregate_id}, pomodori) do
     # IO.inspect("DRIIIIIIIIN! for pomodoro #{pomodoro_id}")
-    {_, pomdori} = Map.pop(pomodori, pomodoro_id)
+    {_, pomodori} = Map.pop(pomodori, pomodoro_id)
     EventStore.emit(%{event: "PomodoroEnded",
                       aggregate_id: aggregate_id,
                       pomodoro_id: pomodoro_id,
