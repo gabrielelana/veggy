@@ -29,6 +29,18 @@ defmodule Veggy.RoutesTest do
     assert_receive {:event, %{event: "LoggedIn", command_id: ^command_id, timer_id: _}}
   end
 
+  test "not a valid command" do
+    conn = conn(:post, "/commands", Poison.encode! %{command: "WhatCommandIsThis"})
+    |> put_req_header("content-type", "application/json")
+    |> call
+
+    assert conn.status == 400
+    assert {"content-type", "application/json"} in conn.resp_headers
+
+    response = Poison.decode!(conn.resp_body)
+    assert %{"error" => "unknown_command"} == response
+  end
+
   defp assert_command_received(conn) do
     assert conn.status == 201
     assert {"content-type", "application/json"} in conn.resp_headers

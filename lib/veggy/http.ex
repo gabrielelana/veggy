@@ -23,12 +23,17 @@ defmodule Veggy.HTTP do
   end
 
   post "/commands" do
-    {:ok, command} = Veggy.Registry.dispatch(conn)
-
-    conn
-    |> put_resp_header("content-type", "application/json")
-    |> put_resp_header("location", url_for(conn, "/commands/#{command.id}"))
-    |> send_resp(201, Poison.encode!(command))
+    case Veggy.Registry.dispatch(conn) do
+      {:ok, command} ->
+        conn
+        |> put_resp_header("content-type", "application/json")
+        |> put_resp_header("location", url_for(conn, "/commands/#{command.id}"))
+        |> send_resp(201, Poison.encode!(command))
+      {:error, reason} ->
+        conn
+        |> put_resp_header("content-type", "application/json")
+        |> send_resp(400, Poison.encode!(%{error: reason}))
+    end
   end
 
   get "/timers/:timer_id/pomodori/latest" do
