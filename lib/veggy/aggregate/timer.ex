@@ -11,6 +11,7 @@ defmodule Veggy.Aggregate.Timer do
             duration: Map.get(params, "duration", 25*60*1000),
             id: Veggy.UUID.new}}
   end
+  def route(_), do: nil
 
   def init(id) do
     Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroEnded", aggregate_id: id}, &1))

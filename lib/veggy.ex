@@ -41,7 +41,7 @@ defmodule Veggy do
       MongoDB.child_spec,
       worker(Veggy.EventStore, []),
       worker(Veggy.Countdown, []),
-      worker(Veggy.Registry, []),
+      worker(Veggy.Registry, [[Veggy.Aggregate.Timer, Veggy.Aggregate.User]]),
       worker(Veggy.Projection, [Veggy.Projection.Pomodori], id: Pomodori),
       worker(Veggy.Projection, [Veggy.Projection.Commands], id: Commands),
       Plug.Adapters.Cowboy.child_spec(:http, Veggy.HTTP, [],

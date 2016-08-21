@@ -1,22 +1,30 @@
 defmodule Veggy.Registry do
   use GenServer
 
-  def start_link do
-    GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
+  def start_link(modules) do
+    GenServer.start_link(__MODULE__, %{modules: modules, registry: %{}}, name: __MODULE__)
   end
 
-  def dispatch(request, module) do
-    # TODO: how to ensure that a module implements a behaviour?
-    {:ok, command} = module.route(request)
-    GenServer.cast(__MODULE__, {:dispatch, command, module})
-    {:ok, command}
+  def dispatch(request) do
+    case GenServer.call(__MODULE__, {:route, request}) do
+      {:ok, command} ->
+        GenServer.cast(__MODULE__, {:dispatch, command})
+        {:ok, command}
+      {:error, _} = error ->
+        error
+    end
   end
 
-  def handle_cast({:dispatch, command, module}, registry) do
+  def handle_call({:route, request}, _from, %{modules: modules} = state) do
+    command = Enum.find_value(modules, {:error, :unknown_command}, &(&1.route(request)))
+    {:reply, command, state}
+  end
+
+  def handle_cast({:dispatch, command}, %{registry: registry} = state) do
     # TODO: how to ensure that a module implements a behaviour?
     {pid, registry} = aggregate_for(registry, command)
     Veggy.Aggregate.handle(pid, command)
-    {:noreply, registry}
+    {:noreply, %{state | registry: registry}}
   end
 
   defp aggregate_for(registry, %{aggregate_id: id, aggregate_module: module}) do

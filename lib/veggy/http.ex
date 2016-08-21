@@ -23,7 +23,16 @@ defmodule Veggy.HTTP do
   end
 
   post "/timer" do
-    {:ok, command} = Veggy.Registry.dispatch(conn, Veggy.Aggregate.Timer)
+    {:ok, command} = Veggy.Registry.dispatch(conn)
+
+    conn
+    |> put_resp_header("content-type", "application/json")
+    |> put_resp_header("location", url_for(conn, "/commands/#{command.id}"))
+    |> send_resp(201, Poison.encode!(command))
+  end
+
+  post "/commands" do
+    {:ok, command} = Veggy.Registry.dispatch(conn)
 
     conn
     |> put_resp_header("content-type", "application/json")
