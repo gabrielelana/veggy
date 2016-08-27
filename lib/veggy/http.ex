@@ -58,6 +58,13 @@ defmodule Veggy.HTTP do
     end
   end
 
+  get "/timers/pomodori/latest" do
+    {:ok, latest_pomodori} = Veggy.Projection.LatestPomodori.all
+    conn
+    |> put_resp_header("content-type", "application/json")
+    |> send_resp(200, Poison.encode!(latest_pomodori))
+  end
+
   match _ do
     conn
     |> put_resp_header("content-type", "plain/text")
