@@ -30,7 +30,7 @@ defmodule Veggy.HTTP do
   end
 
   get "/commands/:command_id" do
-    command_id = %BSON.ObjectId{value: Base.decode16!(command_id, case: :lower)}
+    command_id = Veggy.MongoDB.ObjectId.from_string(command_id)
     case Veggy.Projection.Commands.status_of(command_id) do
       {:ok, command} ->
         conn
@@ -43,15 +43,13 @@ defmodule Veggy.HTTP do
   end
 
   get "/timers/:timer_id/pomodori/latest" do
+    timer_id = Veggy.MongoDB.ObjectId.from_string(timer_id)
     case Veggy.Projection.Pomodori.latest_pomodoro_for_timer(timer_id) do
       {:ok, pomodoro} ->
-        response = %{started_at: to_datetime(pomodoro["started_at"]),
-                     current_time: DateTime.utc_now,
-                     ticking: pomodoro["ticking"]}
         conn
         |> put_resp_header("content-type", "application/json")
         |> put_resp_header("location", url_for(conn, "/pomodori/#{pomodoro["pomodoro_id"]}"))
-        |> send_resp(200, Poison.encode!(response))
+        |> send_resp(200, Poison.encode!(pomodoro))
       {:error, :not_found} ->
         conn
         |> send_resp(404, "")
@@ -69,13 +67,6 @@ defmodule Veggy.HTTP do
     conn
     |> put_resp_header("content-type", "plain/text")
     |> send_resp(404, "oops")
-  end
-
-  defp to_datetime(%BSON.DateTime{} = bdt) do
-    {date, {h, m, s, _}} = BSON.DateTime.to_datetime(bdt)
-    ts = :calendar.datetime_to_gregorian_seconds({date, {h, m, s}}) - 62167219200
-    {:ok, dt} = DateTime.from_unix(ts)
-    dt
   end
 
   defp url_for(conn, path) do

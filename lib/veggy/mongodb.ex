@@ -10,6 +10,12 @@ defmodule Veggy.MongoDB do
        ]])
   end
 
+  defmodule ObjectId do
+    def from_string(object_id) when is_binary(object_id) do
+      %BSON.ObjectId{value: Base.decode16!(object_id, case: :lower)}
+    end
+  end
+
   defmodule DateTime do
     def utc_now, do: from_datetime(Elixir.DateTime.utc_now)
 
@@ -17,6 +23,11 @@ defmodule Veggy.MongoDB do
       BSON.DateTime.from_datetime(
         {{dt.year, dt.month, dt.day},
          {dt.hour, dt.minute, dt.second, 0}})
+    end
+
+    def to_datetime(%BSON.DateTime{utc: milliseconds}) do
+      {:ok, dt} = Elixir.DateTime.from_unix(milliseconds, :milliseconds)
+      dt
     end
   end
 

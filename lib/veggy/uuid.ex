@@ -15,3 +15,9 @@ defimpl Poison.Encoder, for: BSON.ObjectId do
     Poison.Encoder.BitString.encode(String.Chars.to_string(oid), options)
   end
 end
+
+defimpl Poison.Encoder, for: BSON.DateTime do
+  def encode(%BSON.DateTime{} = dt, options) do
+    Poison.Encoder.encode(Veggy.MongoDB.DateTime.to_datetime(dt), options)
+  end
+end

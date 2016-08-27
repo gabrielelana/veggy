@@ -25,7 +25,7 @@ defmodule Veggy.RoutesTest do
     |> call
 
     command_id = assert_command_received(conn)
-    command_id = %BSON.ObjectId{value: Base.decode16!(command_id, case: :lower)}
+    command_id = Veggy.MongoDB.ObjectId.from_string(command_id)
     assert_receive {:event, %{event: "LoggedIn", command_id: ^command_id, timer_id: _}}, 1000
   end
 

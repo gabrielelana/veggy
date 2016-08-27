@@ -4,7 +4,7 @@ defmodule Veggy.Aggregate.Timer do
 
   def route(%Plug.Conn{params: %{"command" => "StartPomodoro"} = params}) do
     {:ok, %{command: "StartPomodoro",
-            aggregate_id: %BSON.ObjectId{value: Base.decode16!(params["timer_id"], case: :lower)},
+            aggregate_id: Veggy.MongoDB.ObjectId.from_string(params["timer_id"]),
             aggregate_module: __MODULE__,
             duration: Map.get(params, "duration", 25*60*1000),
             id: Veggy.UUID.new}}
