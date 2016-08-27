@@ -5,7 +5,10 @@ defmodule Veggy.Aggregates do
     GenServer.start_link(__MODULE__, %{modules: modules, registry: %{}}, name: __MODULE__)
   end
 
-  def dispatch(request) do
+  def dispatch(%{command: _} = command) do
+    GenServer.cast(__MODULE__, {:dispatch, command})
+  end
+  def dispatch(%Plug.Conn{} = request) do
     case GenServer.call(__MODULE__, {:route, request}) do
       {:ok, command} ->
         GenServer.cast(__MODULE__, {:dispatch, command})

@@ -4,8 +4,6 @@ defmodule Veggy.Aggregate.User do
   use Veggy.MongoDB.Aggregate, collection: "aggregate.users"
 
   def route(%Plug.Conn{params: %{"command" => "Login", "username" => username} = params}) do
-    # TODO: implement macro command
-    # command "Login", username: username, aggregate_id: "user/#{username}"
     {:ok, %{command: params["command"],
             username: username,
             aggregate_id: "user/#{username}",
@@ -19,15 +17,24 @@ defmodule Veggy.Aggregate.User do
   end
 
   def handle(%{command: "Login"} = command, aggregate) do
-    # TODO: implement macro event
-    # event "LoggedIn", command, aggregate, username: username, timer_id: aggregate["timer_id"]
-    {:ok, %{event: "LoggedIn",
-            username: command.username,
-            command_id: command.id,
-            aggregate_id: aggregate["id"],
-            timer_id: aggregate["timer_id"],
-            id: Veggy.UUID.new}}
+    event = %{event: "LoggedIn",
+              username: command.username,
+              user_id: aggregate["id"],
+              aggregate_id: aggregate["id"],
+              command_id: command.id,
+              timer_id: aggregate["timer_id"],
+              id: Veggy.UUID.new}
+    command = %{command: "CreateTimer",
+                aggregate_id: aggregate["timer_id"],
+                aggregate_module: Veggy.Aggregate.Timer,
+                user_id: aggregate["id"],
+                id: Veggy.UUID.new}
+    {:ok, event, command}
   end
 
-  def process(_event, s), do: s
+  def process(%{event: "LoggedIn", username: username}, aggregate),
+    do: Map.put(aggregate, "username", username)
+
+  def process(_event, aggregate),
+    do: aggregate
 end

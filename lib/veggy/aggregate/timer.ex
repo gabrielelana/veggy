@@ -4,7 +4,7 @@ defmodule Veggy.Aggregate.Timer do
 
   def route(%Plug.Conn{params: %{"command" => "StartPomodoro"} = params}) do
     {:ok, %{command: "StartPomodoro",
-            aggregate_id: params["timer_id"],
+            aggregate_id: %BSON.ObjectId{value: Base.decode16!(params["timer_id"], case: :lower)},
             aggregate_module: __MODULE__,
             duration: Map.get(params, "duration", 25*60*1000),
             id: Veggy.UUID.new}}
@@ -16,17 +16,28 @@ defmodule Veggy.Aggregate.Timer do
     %{"id" => id, "ticking" => false}
   end
 
-  def handle(%{command: "StartPomodoro"}, %{"ticking" => true}), do: {:error, "Pomodoro is ticking"}
-  def handle(%{command: "StartPomodoro"} = command, aggregate) do
-    {:ok, pomodoro_id} = Veggy.Countdown.start(command.duration, aggregate["id"])
-    {:ok, %{event: "PomodoroStarted",
-            pomodoro_id: pomodoro_id,
+  def handle(%{command: "CreateTimer", user_id: user_id} = command, aggregate) do
+    {:ok, %{event: "TimerCreated",
             command_id: command.id,
             aggregate_id: aggregate["id"],
+            timer_id: aggregate["id"],
+            user_id: user_id,
+            id: Veggy.UUID.new}}
+  end
+  def handle(%{command: "StartPomodoro"}, %{"ticking" => true}), do: {:error, "Pomodoro is ticking"}
+  def handle(%{command: "StartPomodoro"} = command, aggregate) do
+    {:ok, pomodoro_id} = Veggy.Countdown.start(command.duration, aggregate["id"], aggregate["user_id"])
+    {:ok, %{event: "PomodoroStarted",
+            pomodoro_id: pomodoro_id,
+            user_id: aggregate["user_id"],
+            command_id: command.id,
+            aggregate_id: aggregate["id"],
+            timer_id: aggregate["id"],
             duration: command.duration,
             id: Veggy.UUID.new}}
   end
 
+  def process(%{event: "TimerCreated", user_id: user_id}, s), do: Map.put(s, "user_id", user_id)
   def process(%{event: "PomodoroStarted"}, s), do: %{s | "ticking" => true}
   def process(%{event: "PomodoroEnded"}, s), do: %{s | "ticking" => false}
   def process(_, s), do: s
