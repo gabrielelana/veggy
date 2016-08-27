@@ -13,17 +13,6 @@ defmodule Veggy.SkeletonTest do
     assert conn.resp_body == "pong"
   end
 
-  test "POST /counters/:name" do
-    conn = conn(:post, "/counters/1") |> call
-    assert conn.status == 200
-    assert conn.resp_body == "1"
-
-    conn(:post, "/counters/1") |> call
-    conn(:post, "/counters/1") |> call
-    conn = conn(:post, "/counters/1") |> call
-    assert conn.resp_body == "4"
-  end
-
   test "anything else returns 404" do
     conn = conn(:get, "/not-a-valid-route") |> call
 

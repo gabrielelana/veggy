@@ -15,13 +15,6 @@ defmodule Veggy.HTTP do
     |> send_resp(200, "pong")
   end
 
-  post "/counters/:name" do
-    %{"counter" => counter} = count_up(name)
-    conn
-    |> put_resp_header("content-type", "plain/text")
-    |> send_resp(200, "#{counter}")
-  end
-
   post "/commands" do
     case Veggy.Aggregates.dispatch(conn) do
       {:ok, command} ->
@@ -33,6 +26,19 @@ defmodule Veggy.HTTP do
         conn
         |> put_resp_header("content-type", "application/json")
         |> send_resp(400, Poison.encode!(%{error: reason}))
+    end
+  end
+
+  get "/commands/:command_id" do
+    command_id = %BSON.ObjectId{value: Base.decode16!(command_id, case: :lower)}
+    case Veggy.Projection.Commands.status_of(command_id) do
+      {:ok, command} ->
+        conn
+        |> put_resp_header("content-type", "application/json")
+        |> send_resp(200, Poison.encode!(command))
+      {:error, :not_found} ->
+        conn
+        |> send_resp(404, "")
     end
   end
 
@@ -52,19 +58,6 @@ defmodule Veggy.HTTP do
     end
   end
 
-  get "/commands/:command_id" do
-    command_id = %BSON.ObjectId{value: Base.decode16!(command_id, case: :lower)}
-    case Veggy.Projection.Commands.status_of(command_id) do
-      {:ok, command} ->
-        conn
-        |> put_resp_header("content-type", "application/json")
-        |> send_resp(200, Poison.encode!(command))
-      {:error, :not_found} ->
-        conn
-        |> send_resp(404, "")
-    end
-  end
-
   match _ do
     conn
     |> put_resp_header("content-type", "plain/text")
@@ -76,13 +69,6 @@ defmodule Veggy.HTTP do
     ts = :calendar.datetime_to_gregorian_seconds({date, {h, m, s}}) - 62167219200
     {:ok, dt} = DateTime.from_unix(ts)
     dt
-  end
-
-  defp count_up(counter_name) do
-    collection = "counters"
-    query = %{name: counter_name}
-    Mongo.update_one(Veggy.MongoDB, collection, query, %{"$inc": %{counter: 1}}, upsert: true)
-    Mongo.find(Veggy.MongoDB, collection, query) |> Enum.to_list |> List.first
   end
 
   defp url_for(conn, path) do
