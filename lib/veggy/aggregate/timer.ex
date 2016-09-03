@@ -1,4 +1,6 @@
 defmodule Veggy.Aggregate.Timer do
+  @default_duration 1_500_000   # 25 minutes in milliseconds
+
   # @behaviour Veggy.Aggregate
   use Veggy.MongoDB.Aggregate, collection: "aggregate.timers"
 
@@ -6,7 +8,7 @@ defmodule Veggy.Aggregate.Timer do
     {:ok, %{command: "StartPomodoro",
             aggregate_id: Veggy.MongoDB.ObjectId.from_string(params["timer_id"]),
             aggregate_module: __MODULE__,
-            duration: Map.get(params, "duration", 25*60*1000),
+            duration: Map.get(params, "duration", @default_duration),
             id: Veggy.UUID.new}}
   end
   def route(_), do: nil
