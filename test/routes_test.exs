@@ -31,6 +31,27 @@ defmodule Veggy.RoutesTest do
     assert_receive {:event, %{event: "PomodoroStarted", aggregate_id: ^timer_id, description: ^description}}
   end
 
+  test "command SquashPomodoro" do
+    Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroEnded"}, &1))
+    Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroSquashed"}, &1))
+
+    timer_id = Veggy.UUID.new
+    command = %{command: "StartPomodoro", timer_id: timer_id, duration: 1000}
+    conn = conn(:post, "/commands", Poison.encode! command)
+    |> put_req_header("content-type", "application/json")
+    |> call
+    assert_command_received(conn)
+
+    command = %{command: "SquashPomodoro", timer_id: timer_id}
+    conn = conn(:post, "/commands", Poison.encode! command)
+    |> put_req_header("content-type", "application/json")
+    |> call
+    assert_command_received(conn)
+
+    refute_receive {:event, %{event: "PomodoroEnded", aggregate_id: ^timer_id}}
+    assert_receive {:event, %{event: "PomodoroSquashed", aggregate_id: ^timer_id}}
+  end
+
   test "command Login" do
     Veggy.EventStore.subscribe(self, &match?(%{event: "LoggedIn"}, &1))
 

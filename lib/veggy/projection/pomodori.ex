@@ -45,6 +45,11 @@ defmodule Veggy.Projection.Pomodori do
     |> Map.put("ended_at", event.received_at)
     |> Map.put("ticking", false)
   end
+  def process(%{event: "PomodoroSquashed"} = event, record) do
+    record
+    |> Map.put("squashed_at", event.received_at)
+    |> Map.put("ticking", false)
+  end
 
   def latest_pomodoro_for_timer(timer_id) do
     query = %{"timer_id" => timer_id}
