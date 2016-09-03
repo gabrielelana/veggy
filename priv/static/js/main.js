@@ -48,7 +48,7 @@ function sendTxt() {
 }
 
 function onOpen(evt) {
-  showScreen('<span style="color: green;">CONNECTED </span>')
+  showScreen('<span style="color: green;">CONNECTED </span><span id="ping-counter">0</span>')
   $("#connected").fadeIn('slow')
   $("#content").fadeIn('slow')
   websocket.send('login:' + username)
@@ -65,8 +65,15 @@ function onClose(evt) {
 }
 
 function onMessage(evt) {
-  var event = JSON.parse(evt.data)
-  showScreen('<span style="color: blue;">' + event.event + ': ' + evt.data + '</span>')
+  var data = JSON.parse(evt.data)
+  if (data.event) {
+    showScreen('<span style="color: blue;">' + data.event + ': ' + evt.data + '</span>')
+  } else {
+    if (data.message === "pong") {
+      $("#ping-counter").text(parseInt($("#ping-counter").text(), 10) + 1)
+    }
+    console.log(evt.data)
+  }
 }
 
 function onError(evt) {

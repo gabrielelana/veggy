@@ -11,12 +11,14 @@ defmodule Veggy.WS do
   end
 
   def websocket_handle({:text, "ping"}, req, state) do
-    {:reply, {:text, "pong"}, req, state}
+    message = Poison.encode!(%{message: "pong"})
+    {:reply, {:text, message}, req, state}
   end
   def websocket_handle({:text, "login:" <> username}, req, state) do
+    message = Poison.encode!(%{message: "ok"})
     # TODO: Veggy.Aggregate.User.user_id(username)
     Veggy.EventStore.subscribe(self, &related_to_user("user/#{username}", &1))
-    {:reply, {:text, "ok"}, req, state}
+    {:reply, {:text, message}, req, state}
   end
   def websocket_handle({_kind, _message}, req, state) do
     {:ok, req, state}
