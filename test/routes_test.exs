@@ -4,7 +4,7 @@ defmodule Veggy.RoutesTest do
 
   import Plug.Conn
 
-  test "StartPomodoro" do
+  test "command StartPomodoro" do
     Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroEnded"}, &1))
 
     timer_id = Veggy.UUID.new
@@ -17,7 +17,21 @@ defmodule Veggy.RoutesTest do
     assert_receive {:event, %{event: "PomodoroEnded", aggregate_id: ^timer_id}}
   end
 
-  test "Login" do
+  test "command StartPomodoro with description" do
+    Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroStarted"}, &1))
+
+    timer_id = Veggy.UUID.new
+    description = "Something to do"
+    command = %{command: "StartPomodoro", timer_id: timer_id, duration: 10, description: description}
+    conn = conn(:post, "/commands", Poison.encode! command)
+    |> put_req_header("content-type", "application/json")
+    |> call
+
+    assert_command_received(conn)
+    assert_receive {:event, %{event: "PomodoroStarted", aggregate_id: ^timer_id, description: ^description}}
+  end
+
+  test "command Login" do
     Veggy.EventStore.subscribe(self, &match?(%{event: "LoggedIn"}, &1))
 
     conn = conn(:post, "/commands", Poison.encode! %{command: "Login", username: "gabriele"})
@@ -29,7 +43,7 @@ defmodule Veggy.RoutesTest do
     assert_receive {:event, %{event: "LoggedIn", command_id: ^command_id, timer_id: _}}, 1000
   end
 
-  test "not a valid command" do
+  test "invalid command" do
     conn = conn(:post, "/commands", Poison.encode! %{command: "WhatCommandIsThis"})
     |> put_req_header("content-type", "application/json")
     |> call

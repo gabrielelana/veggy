@@ -9,6 +9,7 @@ defmodule Veggy.Aggregate.Timer do
             aggregate_id: Veggy.MongoDB.ObjectId.from_string(params["timer_id"]),
             aggregate_module: __MODULE__,
             duration: Map.get(params, "duration", @default_duration),
+            description: Map.get(params, "description", ""),
             id: Veggy.UUID.new}}
   end
   def route(_), do: nil
@@ -36,6 +37,7 @@ defmodule Veggy.Aggregate.Timer do
             aggregate_id: aggregate["id"],
             timer_id: aggregate["id"],
             duration: command.duration,
+            description: command.description,
             id: Veggy.UUID.new}}
   end
 
