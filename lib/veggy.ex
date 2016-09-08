@@ -11,10 +11,13 @@ defmodule Veggy do
       Veggy.MongoDB.child_spec,
       worker(Veggy.EventStore, []),
       worker(Veggy.Countdown, []),
-      worker(Veggy.Aggregates, [[Veggy.Aggregate.Timer, Veggy.Aggregate.User]]),
-      worker(Veggy.Projection, [Veggy.Projection.Pomodori], id: Pomodori),
-      worker(Veggy.Projection, [Veggy.Projection.Commands], id: Commands),
-      worker(Veggy.Projection, [Veggy.Projection.LatestPomodori], id: Timers),
+      worker(Veggy.Aggregates, [
+            [Veggy.Aggregate.Timer,
+             Veggy.Aggregate.User]]),
+      worker(Veggy.Projections, [
+            [Veggy.Projection.Commands,
+             Veggy.Projection.Pomodori,
+             Veggy.Projection.LatestPomodori]]),
       Plug.Adapters.Cowboy.child_spec(:http, Veggy.HTTP, [],
         [port: 4000, dispatch: dispatch]),
     ]

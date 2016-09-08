@@ -5,9 +5,10 @@ defmodule Veggy.Projection do
     GenServer.start_link(__MODULE__, %{module: module})
   end
 
-  def init(state) do
-    state.module.init
-    {:ok, state}
+  def init(%{module: module}) do
+    # TODO: add state also for the entire projection?
+    module.init
+    {:ok, %{module: module}}
   end
 
   def handle_info({:event, event}, state) do

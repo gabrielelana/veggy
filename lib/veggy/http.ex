@@ -29,39 +29,44 @@ defmodule Veggy.HTTP do
     end
   end
 
-  get "/commands/:command_id" do
-    command_id = Veggy.MongoDB.ObjectId.from_string(command_id)
-    case Veggy.Projection.Commands.status_of(command_id) do
-      {:ok, command} ->
+  # TODO: get "/events" + Query to forward to EventStore
+
+  get "/projections/:name" do
+    case Veggy.Projections.dispatch(conn, name) do
+      {:ok, report} ->
         conn
         |> put_resp_header("content-type", "application/json")
-        |> send_resp(200, Poison.encode!(command))
-      {:error, :not_found} ->
+        |> send_resp(200, Poison.encode!(report))
+      {:not_found, _} ->
         conn
         |> send_resp(404, "")
+      {:error, reason} ->
+        conn
+        |> put_resp_header("content-type", "application/json")
+        |> send_resp(400, Poison.encode!(%{error: reason}))
     end
   end
 
-  get "/timers/:timer_id/pomodori/latest" do
-    timer_id = Veggy.MongoDB.ObjectId.from_string(timer_id)
-    case Veggy.Projection.Pomodori.latest_pomodoro_for_timer(timer_id) do
-      {:ok, pomodoro} ->
-        conn
-        |> put_resp_header("content-type", "application/json")
-        |> put_resp_header("location", url_for(conn, "/pomodori/#{pomodoro["pomodoro_id"]}"))
-        |> send_resp(200, Poison.encode!(pomodoro))
-      {:error, :not_found} ->
-        conn
-        |> send_resp(404, "")
-    end
-  end
+  # get "/timers/:timer_id/pomodori/latest" do
+  #   timer_id = Veggy.MongoDB.ObjectId.from_string(timer_id)
+  #   case Veggy.Projection.Pomodori.latest_pomodoro_for_timer(timer_id) do
+  #     {:ok, pomodoro} ->
+  #       conn
+  #       |> put_resp_header("content-type", "application/json")
+  #       |> put_resp_header("location", url_for(conn, "/pomodori/#{pomodoro["pomodoro_id"]}"))
+  #       |> send_resp(200, Poison.encode!(pomodoro))
+  #     {:error, :not_found} ->
+  #       conn
+  #       |> send_resp(404, "")
+  #   end
+  # end
 
-  get "/timers/pomodori/latest" do
-    {:ok, latest_pomodori} = Veggy.Projection.LatestPomodori.all
-    conn
-    |> put_resp_header("content-type", "application/json")
-    |> send_resp(200, Poison.encode!(latest_pomodori))
-  end
+  # get "/timers/pomodori/latest" do
+  #   {:ok, latest_pomodori} = Veggy.Projection.LatestPomodori.all
+  #   conn
+  #   |> put_resp_header("content-type", "application/json")
+  #   |> send_resp(200, Poison.encode!(latest_pomodori))
+  # end
 
   match _ do
     conn
