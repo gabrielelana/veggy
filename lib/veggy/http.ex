@@ -29,13 +29,15 @@ defmodule Veggy.HTTP do
     end
   end
 
-  get "/commands/:command_id" do
-    command_id = Veggy.MongoDB.ObjectId.from_string(command_id)
-    case Veggy.Projection.Commands.status_of(command_id) do
-      {:ok, command} ->
+  # TODO: get "/events" + Query to forward to EventStore
+
+  # * /projections/commands/status?command_id=<UUID>
+  get "/projections/:module/:name" do
+    case Veggy.Projections.dispatch(conn, module, name) do
+      {:ok, report} ->
         conn
         |> put_resp_header("content-type", "application/json")
-        |> send_resp(200, Poison.encode!(command))
+        |> send_resp(200, Poison.encode!(report))
       {:error, :not_found} ->
         conn
         |> send_resp(404, "")

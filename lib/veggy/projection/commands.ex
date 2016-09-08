@@ -27,9 +27,10 @@ defmodule Veggy.Projection.Commands do
     %{"command_id" => command_id, "status" => "failed"}
   end
 
-  def status_of(command_id) do
-    case fetch(%{command_id: command_id}) do
-      %{"command_id" => ^command_id} = command -> {:ok, command}
+  def query("status", %{"command_id" => command_id}) do
+    command_id = Veggy.MongoDB.ObjectId.from_string(command_id)
+    case Mongo.find(Veggy.MongoDB, @collection, %{"command_id" => command_id}) |> Enum.to_list do
+      [%{"command_id" => ^command_id} = command] -> {:ok, command}
       _ -> {:error, :not_found}
     end
   end
