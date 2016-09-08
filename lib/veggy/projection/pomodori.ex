@@ -41,6 +41,7 @@ defmodule Veggy.Projection.Pomodori do
     %{"pomodoro_id" => event.pomodoro_id,
       "timer_id" => event.aggregate_id,
       "started_at" => event.received_at,
+      "tags" => Veggy.Task.extract_tags(event.description),
       "ticking" => true,
       "duration" => event.duration}
   end
@@ -58,8 +59,14 @@ defmodule Veggy.Projection.Pomodori do
   end
 
 
-  # TODO: query("pomodori-by-day", %{"from-day" => _, "to-day" => _, "timer_id" => _})
-  # TODO: query("pomodori-by-tag", %{"from-day" => _, "to-day" => _, "tag" => _, "timer_id" => _})
+  def query("pomodori-by-tag", %{"tag" => tag, "timer_id" => timer_id}) do
+    timer_id = Veggy.MongoDB.ObjectId.from_string(timer_id)
+    tags = String.split(tag, ",", trim: true) |> Enum.map(&String.trim/1) |> Enum.map(&String.downcase/1)
+    query = %{"timer_id" => timer_id, "tags" => %{"$in" => tags}}
+    Mongo.find(Veggy.MongoDB, @collection, query)
+    |> Enum.to_list
+    |> (&{:ok, &1}).()
+  end
 
   def query("pomodori-of-the-day", %{"day" => day, "timer_id" => timer_id} = parameters) do
     timer_id = Veggy.MongoDB.ObjectId.from_string(timer_id)
@@ -72,11 +79,19 @@ defmodule Veggy.Projection.Pomodori do
         query = %{"started_at" => %{"$gte" => beginning_of_day, "$lte" => end_of_day},
                   "timer_id" => timer_id,
                  }
+
+        # TODO
+        # Veggy.Mongo.Projection.find(
+        #   @collection,
+        #   %{"timer_id" => timer_id
+        #     "started_at" => %{"$gte" => Timex.beginning_of_day(day),
+        #                       "$lte" => Timex.end_of_day(day)}})
+
         Mongo.find(Veggy.MongoDB, @collection, query)
         |> Enum.to_list
         |> (&{:ok, &1}).()
       {:error, reason} ->
-        {:error, "parameter (day=#{parameters["day"]}: #{reason}"}
+        {:error, "day=#{parameters["day"]}: #{reason}"}
     end
   end
 
