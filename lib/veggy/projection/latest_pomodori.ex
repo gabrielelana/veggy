@@ -6,8 +6,8 @@ defmodule Veggy.Projection.LatestPomodori do
   def init do
     Veggy.EventStore.subscribe(self, &match?(%{event: "LoggedIn"}, &1))
     Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroStarted"}, &1))
-    Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroEnded"}, &1))
     Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroSquashed"}, &1))
+    Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroEnded"}, &1))
   end
 
   def fetch(%{event: _, user_id: user_id}) do

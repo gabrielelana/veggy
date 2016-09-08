@@ -18,6 +18,7 @@ defmodule Veggy.Projection.Pomodori do
 
   def init do
     Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroStarted"}, &1))
+    Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroSquashed"}, &1))
     Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroEnded"}, &1))
     # TODO: create appropriate indexes
   end
