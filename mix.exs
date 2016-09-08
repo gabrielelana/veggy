@@ -11,7 +11,7 @@ defmodule Veggy.Mixfile do
   end
 
   def application do
-    [applications: [:logger, :mongodb, :poolboy, :cowboy, :plug],
+    [applications: [:logger, :timex, :mongodb, :poolboy, :cowboy, :plug],
      mod: {Veggy, []}]
   end
 
@@ -22,6 +22,7 @@ defmodule Veggy.Mixfile do
      {:poolboy, "~> 1.5.1"},
      {:poison, "~> 2.2.0"},
      {:inflex, "~> 1.7.0"},
+     {:timex, "~> 3.0"},
      {:cors_plug, "~> 1.1"}]
   end
 end

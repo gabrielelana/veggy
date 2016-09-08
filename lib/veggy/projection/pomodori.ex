@@ -52,12 +52,45 @@ defmodule Veggy.Projection.Pomodori do
     |> Map.put("ticking", false)
   end
 
-  def latest_pomodoro_for_timer(timer_id) do
-    query = %{"timer_id" => timer_id}
-    options = [sort: %{"started_at" => -1}, limit: 1]
-    case Mongo.find(Veggy.MongoDB, @collection, query, options) |> Enum.to_list do
-      [] -> {:error, :not_found}
-      [d] -> {:ok, d}
+  # TODO: query("pomodori-by-day", %{"from-day" => _, "to-day" => _, "timer_id" => _})
+  # TODO: query("pomodori-by-tag", %{"from-day" => _, "to-day" => _, "tag" => _, "timer_id" => _})
+
+  def query("pomodori-of-the-day", %{"day" => day, "timer_id" => timer_id} = parameters) do
+    timer_id = Veggy.MongoDB.ObjectId.from_string(timer_id)
+    case Timex.parse(day, "{YYYY}-{0M}-{0D}") do
+      {:ok, day} ->
+        beginning_of_day =
+          day |> Timex.beginning_of_day |> Timex.to_datetime |> Veggy.MongoDB.DateTime.from_datetime
+        end_of_day =
+          day |> Timex.end_of_day |> Timex.to_datetime |> Veggy.MongoDB.DateTime.from_datetime
+        query = %{"started_at" => %{"$gte" => beginning_of_day, "$lte" => end_of_day},
+                  "timer_id" => timer_id,
+                 }
+        Mongo.find(Veggy.MongoDB, @collection, query)
+        |> Enum.to_list
+        |> (&{:ok, &1}).()
+      {:error, reason} ->
+        {:error, "parameter (day=#{parameters["day"]}: #{reason}"}
     end
   end
+
+  def query(_, _), do: nil
+
+  # def query("latest-pomodoro", %{"timer_id" => command_id}) do
+    # timer_id = Veggy.MongoDB.ObjectId.from_string(timer_id)
+    # query = %{"timer_id" => timer_id}
+    # options = [sort: %{"started_at" => -1}, limit: 1]
+    # case Mongo.find(Veggy.MongoDB, @collection, query, options) |> Enum.to_list do
+    #   [d] -> {:ok, d}
+    #   [] -> {:not_found, :record}
+    # end
+  # end
+  # def latest_pomodoro_for_timer(timer_id) do
+  #   query = %{"timer_id" => timer_id}
+  #   options = [sort: %{"started_at" => -1}, limit: 1]
+  #   case Mongo.find(Veggy.MongoDB, @collection, query, options) |> Enum.to_list do
+  #     [] -> {:error, :not_found}
+  #     [d] -> {:ok, d}
+  #   end
+  # end
 end
