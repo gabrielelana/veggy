@@ -29,7 +29,7 @@ defmodule Veggy.Aggregate.User do
                 aggregate_module: Veggy.Aggregate.Timer,
                 user_id: aggregate["id"],
                 id: Veggy.UUID.new}
-    {:ok, event, command}
+    {:ok, [event], [command]}
   end
 
   def process(%{event: "LoggedIn", username: username}, aggregate),

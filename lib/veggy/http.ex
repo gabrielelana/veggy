@@ -47,27 +47,6 @@ defmodule Veggy.HTTP do
     end
   end
 
-  # get "/timers/:timer_id/pomodori/latest" do
-  #   timer_id = Veggy.MongoDB.ObjectId.from_string(timer_id)
-  #   case Veggy.Projection.Pomodori.latest_pomodoro_for_timer(timer_id) do
-  #     {:ok, pomodoro} ->
-  #       conn
-  #       |> put_resp_header("content-type", "application/json")
-  #       |> put_resp_header("location", url_for(conn, "/pomodori/#{pomodoro["pomodoro_id"]}"))
-  #       |> send_resp(200, Poison.encode!(pomodoro))
-  #     {:error, :not_found} ->
-  #       conn
-  #       |> send_resp(404, "")
-  #   end
-  # end
-
-  # get "/timers/pomodori/latest" do
-  #   {:ok, latest_pomodori} = Veggy.Projection.LatestPomodori.all
-  #   conn
-  #   |> put_resp_header("content-type", "application/json")
-  #   |> send_resp(200, Poison.encode!(latest_pomodori))
-  # end
-
   match _ do
     conn
     |> put_resp_header("content-type", "plain/text")

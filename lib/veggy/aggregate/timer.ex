@@ -19,6 +19,15 @@ defmodule Veggy.Aggregate.Timer do
             reason: Map.get(params, "reason", ""),
             id: Veggy.UUID.new}}
   end
+  def route(%Plug.Conn{params: %{"command" => "StartSharedPomodoro"} = params}) do
+    {:ok, %{command: "StartSharedPomodoro",
+            aggregate_id: Veggy.MongoDB.ObjectId.from_string(params["timer_id"]),
+            aggregate_module: __MODULE__,
+            duration: Map.get(params, "duration", @default_duration),
+            description: Map.get(params, "description", ""),
+            shared_with: Map.get(params, "shared_with", []) |> Enum.map(&Veggy.MongoDB.ObjectId.from_string/1),
+            id: Veggy.UUID.new}}
+  end
   def route(_), do: nil
 
   def init(id) do
@@ -58,6 +67,19 @@ defmodule Veggy.Aggregate.Timer do
             timer_id: aggregate["id"],
             reason: command.reason,
             id: Veggy.UUID.new}}
+  end
+  def handle(%{command: "StartSharedPomodoro", shared_with: shared_with} = command, aggregate) do
+    buddies = [aggregate["id"] | shared_with]
+    commands = Enum.map(buddies,
+      fn(id) -> %{command: "StartPomodoro",
+                  aggregate_id: id,
+                  aggregate_module: __MODULE__,
+                  duration: command.duration,
+                  description: command.description,
+                  shared_with: buddies -- [id],
+                  id: Veggy.UUID.new}
+      end)
+    {:ok, [], {:fork, commands}}
   end
 
 
