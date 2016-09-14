@@ -31,6 +31,10 @@ defmodule Veggy.Aggregate do
   #   {:error, reason::any, [events]} |
   #   {:error, reason::any, [events], [commands]}
 
+  # @callback rollback(command, state::any) ::
+  #   {:ok, related_events} |
+  #   {:error, reason::any}
+
   # @callback process(event, state::any) ::
   #   state::any
 
@@ -39,13 +43,17 @@ defmodule Veggy.Aggregate do
   end
 
   def handle(pid, %{command: _} = command) do
-    GenServer.cast(pid, command)
+    GenServer.cast(pid, {:handle, command})
+  end
+  def rollback(pid, %{command: _} = command) do
+    GenServer.cast(pid, {:rollback, command})
   end
 
 
-  def handle_cast(%{command: _} = command, %{aggregate: nil} = state),
-    do: handle_cast(command, %{state | aggregate: do_init(state)})
-  def handle_cast(%{command: _} = command, state) do
+  def handle_cast({op, %{command: _} = command}, %{aggregate: nil} = state),
+    do: handle_cast({op, command}, %{state | aggregate: do_init(state)})
+
+  def handle_cast({:handle, %{command: _} = command}, state) do
     Veggy.EventStore.emit(received(command))
 
     {outcome_event, emitted_events, related_commands} =
@@ -53,14 +61,11 @@ defmodule Veggy.Aggregate do
 
     # TODO: ensure every commands has what we need otherwise blow up and explain why
     # TODO: ensure every events has what we need otherwise blow up and explain why
-
     # TODO: enrich emitted_events with: command id and other correlation ids known by the aggregate
     #       should every aggregate have a special storage for correlation ids?
 
     outcome_event = correlate_outcome(outcome_event, emitted_events, related_commands)
-
-    route_commands(related_commands)
-
+    route_commands(command, related_commands)
     aggregate_state = process_events(emitted_events, state.module, state.aggregate)
 
     # XXX: here we have a potential inconsistency, if this process dies here
@@ -71,6 +76,20 @@ defmodule Veggy.Aggregate do
 
     commit_events([outcome_event | emitted_events])
 
+    {:noreply, %{state | aggregate: aggregate_state}}
+  end
+
+  def handle_cast({:rollback, %{command: _} = command}, state) do
+    {outcome_event, emitted_events} =
+      rollback_command(command, state.module, state.aggregate)
+
+    # TODO: ensure every events has what we need otherwise blow up and explain why
+    # TODO: enrich emitted_events with: command id and other correlation ids known by the aggregate
+    #       should every aggregate have a special storage for correlation ids?
+
+    outcome_event = correlate_outcome(outcome_event, emitted_events, [])
+    aggregate_state = process_events(emitted_events, state.module, state.aggregate)
+    commit_events([outcome_event | emitted_events])
     {:noreply, %{state | aggregate: aggregate_state}}
   end
 
@@ -99,14 +118,28 @@ defmodule Veggy.Aggregate do
     end
   end
 
+  def rollback_command(command, aggregate_module, aggregate_state) do
+    case aggregate_module.rollback(command, aggregate_state) do
+      {:ok, event} when is_map(event) -> {rolledback(command), [event]}
+      {:ok, events} when is_list(events) -> {rolledback(command), events}
+      {:error, reason} -> raise reason # TODO: do something better
+      # TODO: blow up but before explain what we are expecting
+    end
+  end
+
+  def correlate_outcome(outcome, events, {_, commands}),
+    do: correlate_outcome(outcome, events, commands)
   def correlate_outcome(outcome, events, commands) do
     outcome
     |> Map.put(:events, Enum.map(events, &Map.get(&1, :id)))
     |> Map.put(:commands, Enum.map(commands, &Map.get(&1, :id)))
   end
 
-  def route_commands(commands) do
-    # TODO: very naive...
+  def route_commands(parent, {:fork, commands}), do: Veggy.Transaction.ForkAndJoin.start(parent, commands)
+  # def route_commands(parent, {:chain, commands}), do: Veggy.Transaction.Chain.start(parent, commands)
+  # def route_commands(parent, {:forward, command}), do: Veggy.Transaction.Forward.start(parent, command)
+  def route_commands(_parent, commands) do
+    # TODO: Veggy.Transaction.FireAndForget.start(parent, commands)
     Enum.each(commands, &Veggy.Aggregates.dispatch/1)
   end
 
@@ -128,7 +161,7 @@ defmodule Veggy.Aggregate do
   end
 
   defp received(%{command: _} = command),
-    do: %{event: "CommandReceived", command_id: command.id, id: Veggy.UUID.new}
+    do: %{event: "CommandReceived", command_id: command.id, command: command, id: Veggy.UUID.new}
 
   defp succeeded(%{command: _} = command),
     do: %{event: "CommandSucceeded", command_id: command.id, id: Veggy.UUID.new}
@@ -138,4 +171,7 @@ defmodule Veggy.Aggregate do
 
   defp failed(%{command: _} = command, reason),
     do: %{event: "CommandFailed", command_id: command.id, why: reason, id: Veggy.UUID.new}
+
+  defp rolledback(%{command: _} = command),
+    do: %{event: "CommandRolledBack", command_id: command.id, id: Veggy.UUID.new}
 end

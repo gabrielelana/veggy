@@ -10,6 +10,7 @@ defmodule Veggy.Aggregate.Timer do
             aggregate_module: __MODULE__,
             duration: Map.get(params, "duration", @default_duration),
             description: Map.get(params, "description", ""),
+            shared_with: Map.get(params, "shared_with", []),
             id: Veggy.UUID.new}}
   end
   def route(%Plug.Conn{params: %{"command" => "SquashPomodoro"} = params}) do
@@ -17,6 +18,7 @@ defmodule Veggy.Aggregate.Timer do
             aggregate_id: Veggy.MongoDB.ObjectId.from_string(params["timer_id"]),
             aggregate_module: __MODULE__,
             reason: Map.get(params, "reason", ""),
+            shared_with: Map.get(params, "shared_with", []),
             id: Veggy.UUID.new}}
   end
   def route(%Plug.Conn{params: %{"command" => "StartSharedPomodoro"} = params}) do
@@ -82,6 +84,19 @@ defmodule Veggy.Aggregate.Timer do
     {:ok, [], {:fork, commands}}
   end
 
+  # TODO: ensure that the current pomodoro has been started by the same command we are rolling back
+  def rollback(%{command: "StartPomodoro"}, %{"ticking" => false}), do: {:error, "Pomodoro is not ticking"}
+  def rollback(%{command: "StartPomodoro"} = command, %{"pomodoro_id" => pomodoro_id} = aggregate) do
+    :ok = Veggy.Countdown.void(pomodoro_id)
+    {:ok, %{event: "PomodoroVoided",
+            pomodoro_id: pomodoro_id,
+            user_id: aggregate["user_id"],
+            command_id: command.id,
+            aggregate_id: aggregate["id"],
+            timer_id: aggregate["id"],
+            id: Veggy.UUID.new}}
+  end
+
 
   def process(%{event: "TimerCreated", user_id: user_id}, s),
     do: Map.put(s, "user_id", user_id)
@@ -93,6 +108,9 @@ defmodule Veggy.Aggregate.Timer do
     do: s |> Map.put("ticking", false) |> Map.delete("pomodoro_id")
 
   def process(%{event: "PomodoroEnded"}, s),
+    do: s |> Map.put("ticking", false) |> Map.delete("pomodoro_id")
+
+  def process(%{event: "PomodoroVoided"}, s),
     do: s |> Map.put("ticking", false) |> Map.delete("pomodoro_id")
 
   def process(_, s), do: s

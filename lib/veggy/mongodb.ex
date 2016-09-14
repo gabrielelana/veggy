@@ -51,11 +51,11 @@ defmodule Veggy.MongoDB do
 
         def store(aggregate) do
           aggregate = aggregate |> Map.put("_id", aggregate["id"]) |> Map.delete("id")
-          {:ok, _} = Mongo.update_one(
+          {:ok, _} = Mongo.replace_one(
             Veggy.MongoDB,
             @collection,
             %{"_id" => aggregate["_id"]},
-            %{"$set" => aggregate},
+            aggregate,
             upsert: true)
         end
 

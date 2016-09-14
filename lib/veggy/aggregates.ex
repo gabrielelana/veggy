@@ -18,6 +18,10 @@ defmodule Veggy.Aggregates do
     end
   end
 
+  def rollback(%{command: _} = command) do
+    GenServer.cast(__MODULE__, {:rollback, command})
+  end
+
   def handle_call({:route, request}, _from, %{modules: modules} = state) do
     command = Enum.find_value(modules, {:error, :unknown_command}, &(&1.route(request)))
     {:reply, command, state}
@@ -27,6 +31,12 @@ defmodule Veggy.Aggregates do
     # TODO: how to ensure that a module implements a behaviour?
     {pid, registry} = aggregate_for(registry, command)
     Veggy.Aggregate.handle(pid, command)
+    {:noreply, %{state | registry: registry}}
+  end
+  def handle_cast({:rollback, command}, %{registry: registry} = state) do
+    # TODO: how to ensure that a module implements a behaviour?
+    {pid, registry} = aggregate_for(registry, command)
+    Veggy.Aggregate.rollback(pid, command)
     {:noreply, %{state | registry: registry}}
   end
 
