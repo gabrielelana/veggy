@@ -43,7 +43,10 @@ defmodule Veggy.EventStore do
   end
 
   defp store(event) do
-    Mongo.save_one(Veggy.MongoDB, @collection, event)
+    event
+    |> Map.put(:_id, event.id)
+    |> Map.delete(:id)
+    |> (&Mongo.save_one(Veggy.MongoDB, @collection, &1)).()
     event
   end
 
