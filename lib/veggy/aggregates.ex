@@ -9,7 +9,7 @@ defmodule Veggy.Aggregates do
     GenServer.cast(__MODULE__, {:dispatch, command})
   end
   def dispatch(%Plug.Conn{} = request) do
-    case GenServer.call(__MODULE__, {:route, request}) do
+    case GenServer.call(__MODULE__, {:route, request.params}) do
       {:ok, command} ->
         GenServer.cast(__MODULE__, {:dispatch, command})
         {:ok, command}

@@ -4,7 +4,7 @@ defmodule Veggy.Aggregate.Timer do
   # @behaviour Veggy.Aggregate
   use Veggy.MongoDB.Aggregate, collection: "aggregate.timers"
 
-  def route(%Plug.Conn{params: %{"command" => "StartPomodoro"} = params}) do
+  def route(%{"command" => "StartPomodoro"} = params) do
     {:ok, %{command: "StartPomodoro",
             aggregate_id: Veggy.MongoDB.ObjectId.from_string(params["timer_id"]),
             aggregate_module: __MODULE__,
@@ -13,7 +13,7 @@ defmodule Veggy.Aggregate.Timer do
             shared_with: Map.get(params, "shared_with", []),
             id: Veggy.UUID.new}}
   end
-  def route(%Plug.Conn{params: %{"command" => "SquashPomodoro"} = params}) do
+  def route(%{"command" => "SquashPomodoro"} = params) do
     {:ok, %{command: "SquashPomodoro",
             aggregate_id: Veggy.MongoDB.ObjectId.from_string(params["timer_id"]),
             aggregate_module: __MODULE__,
@@ -21,7 +21,7 @@ defmodule Veggy.Aggregate.Timer do
             shared_with: Map.get(params, "shared_with", []),
             id: Veggy.UUID.new}}
   end
-  def route(%Plug.Conn{params: %{"command" => "StartSharedPomodoro"} = params}) do
+  def route(%{"command" => "StartSharedPomodoro"} = params) do
     {:ok, %{command: "StartSharedPomodoro",
             aggregate_id: Veggy.MongoDB.ObjectId.from_string(params["timer_id"]),
             aggregate_module: __MODULE__,
