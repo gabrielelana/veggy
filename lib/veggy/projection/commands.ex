@@ -30,6 +30,10 @@ defmodule Veggy.Projection.Commands do
     Mongo.save_one(Veggy.MongoDB, @collection, record)
   end
 
+  def delete(record) do
+    Mongo.delete_one(Veggy.MongoDB, @collection, %{"_id" => record["_id"]})
+  end
+
 
   def process(%{"event" => "CommandReceived"} = event, _) do
     %{"command_id" => event["command_id"],

@@ -18,7 +18,7 @@ defmodule Veggy.Aggregates do
     end
   end
 
-  def rollback(%{command: _} = command) do
+  def rollback(%{"command" => _} = command) do
     GenServer.cast(__MODULE__, {:rollback, command})
   end
 

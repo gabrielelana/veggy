@@ -23,6 +23,10 @@ defmodule Veggy.Projection.LatestPomodori do
     Mongo.save_one(Veggy.MongoDB, @collection, record)
   end
 
+  def delete(record) do
+    Mongo.delete_one(Veggy.MongoDB, @collection, %{"_id" => record["_id"]})
+  end
+
 
   def process(%{"event" => "LoggedIn"} = event, record) do
     record

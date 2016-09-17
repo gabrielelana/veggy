@@ -6,19 +6,19 @@ defmodule Veggy.Projection do
   end
 
   def init(%{module: module}) do
-    # TODO: add state also for the entire projection?
     module.init
     {:ok, %{module: module}}
   end
 
   def handle_info({:event, event}, state) do
-    # IO.inspect({:received, event})
     record = state.module.fetch(event)
-    # IO.inspect({:fetched, record})
-    record = state.module.process(event, record)
-    # IO.inspect({:processed, record})
-    state.module.store(record)
-    # TODO: remember where we arrived at processing events
+    case state.module.process(event, record) do
+      :skip -> raise "unimplemented"
+      :hold -> raise "unimplemented"
+      :delete -> state.module.delete(record)
+      {:error, _reason} -> raise "unimplemented"
+      record -> state.module.store(record)
+    end
     {:noreply, state}
   end
 end

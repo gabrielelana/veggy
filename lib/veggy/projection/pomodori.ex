@@ -20,7 +20,8 @@ defmodule Veggy.Projection.Pomodori do
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroStarted"}, &1))
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroSquashed"}, &1))
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroEnded"}, &1))
-    # "TODO" => create appropriate indexes
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroVoided"}, &1))
+    %{}
   end
 
 
@@ -31,9 +32,12 @@ defmodule Veggy.Projection.Pomodori do
     end
   end
 
-
   def store(record) do
     Mongo.save_one(Veggy.MongoDB, @collection, record)
+  end
+
+  def delete(record) do
+    Mongo.delete_one(Veggy.MongoDB, @collection, %{"_id" => record["_id"]})
   end
 
 
@@ -45,17 +49,18 @@ defmodule Veggy.Projection.Pomodori do
       "ticking" => true,
       "duration" => event["duration"]}
   end
-
   def process(%{"event" => "PomodoroEnded"} = event, record) do
     record
     |> Map.put("ended_at", event["received_at"])
     |> Map.put("ticking", false)
   end
-
   def process(%{"event" => "PomodoroSquashed"} = event, record) do
     record
     |> Map.put("squashed_at", event["received_at"])
     |> Map.put("ticking", false)
+  end
+  def process(%{"event" => "PomodoroVoided"}, _) do
+    :delete
   end
 
 
