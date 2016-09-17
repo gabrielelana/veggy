@@ -167,7 +167,7 @@ defmodule Veggy.Aggregate do
     do: %{"event" => "CommandSucceeded", "command_id" => id, "id" => Veggy.UUID.new}
 
   defp splitted(%{"id" => id}),
-    do: %{"event" => "CommandSplitted", "command_id" => id, "id" => Veggy.UUID.new}
+    do: %{"event" => "CommandHandedOver", "command_id" => id, "id" => Veggy.UUID.new}
 
   defp failed(%{"id" => id}, reason),
     do: %{"event" => "CommandFailed", "command_id" => id, "why" => reason, "id" => Veggy.UUID.new}

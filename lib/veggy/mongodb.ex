@@ -22,7 +22,7 @@ defmodule Veggy.MongoDB do
     def from_datetime(dt) do
       BSON.DateTime.from_datetime(
         {{dt.year, dt.month, dt.day},
-         {dt.hour, dt.minute, dt.second, 0}})
+         {dt.hour, dt.minute, dt.second, elem(dt.microsecond, 0)}})
     end
 
     def to_datetime(%BSON.DateTime{utc: milliseconds}) do
