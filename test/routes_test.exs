@@ -5,67 +5,67 @@ defmodule Veggy.RoutesTest do
   import Plug.Conn
 
   test "command StartPomodoro" do
-    Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroEnded"}, &1))
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroEnded"}, &1))
 
     timer_id = Veggy.UUID.new
-    command = %{command: "StartPomodoro", timer_id: timer_id, duration: 10}
+    command = %{"command" => "StartPomodoro", "timer_id" => timer_id, "duration" => 10}
     conn = conn(:post, "/commands", Poison.encode! command)
     |> put_req_header("content-type", "application/json")
     |> call
 
     assert_command_received(conn)
-    assert_receive {:event, %{event: "PomodoroEnded", aggregate_id: ^timer_id}}
+    assert_receive {:event, %{"event" => "PomodoroEnded", "aggregate_id" => ^timer_id}}
   end
 
   test "command StartPomodoro with description" do
-    Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroStarted"}, &1))
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroStarted"}, &1))
 
     timer_id = Veggy.UUID.new
     description = "Something to do"
-    command = %{command: "StartPomodoro", timer_id: timer_id, duration: 10, description: description}
+    command = %{"command" => "StartPomodoro", "timer_id" => timer_id, "duration" => 10, "description" => description}
     conn = conn(:post, "/commands", Poison.encode! command)
     |> put_req_header("content-type", "application/json")
     |> call
 
     assert_command_received(conn)
-    assert_receive {:event, %{event: "PomodoroStarted", aggregate_id: ^timer_id, description: ^description}}
+    assert_receive {:event, %{"event" => "PomodoroStarted", "aggregate_id" => ^timer_id, "description" => ^description}}
   end
 
   test "command SquashPomodoro" do
-    Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroEnded"}, &1))
-    Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroSquashed"}, &1))
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroEnded"}, &1))
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroSquashed"}, &1))
 
     timer_id = Veggy.UUID.new
-    command = %{command: "StartPomodoro", timer_id: timer_id, duration: 1000}
+    command = %{"command" => "StartPomodoro", "timer_id" => timer_id, "duration" => 1000}
     conn = conn(:post, "/commands", Poison.encode! command)
     |> put_req_header("content-type", "application/json")
     |> call
     assert_command_received(conn)
 
-    command = %{command: "SquashPomodoro", timer_id: timer_id}
+    command = %{"command" => "SquashPomodoro", "timer_id" => timer_id}
     conn = conn(:post, "/commands", Poison.encode! command)
     |> put_req_header("content-type", "application/json")
     |> call
     assert_command_received(conn)
 
-    refute_receive {:event, %{event: "PomodoroEnded", aggregate_id: ^timer_id}}
-    assert_receive {:event, %{event: "PomodoroSquashed", aggregate_id: ^timer_id}}
+    refute_receive {:event, %{"event" => "PomodoroEnded", "aggregate_id" => ^timer_id}}
+    assert_receive {:event, %{"event" => "PomodoroSquashed", "aggregate_id" => ^timer_id}}
   end
 
   test "command Login" do
-    Veggy.EventStore.subscribe(self, &match?(%{event: "LoggedIn"}, &1))
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "LoggedIn"}, &1))
 
-    conn = conn(:post, "/commands", Poison.encode! %{command: "Login", username: "gabriele"})
+    conn = conn(:post, "/commands", Poison.encode! %{"command" => "Login", "username" => "gabriele"})
     |> put_req_header("content-type", "application/json")
     |> call
 
     command_id = assert_command_received(conn)
     command_id = Veggy.MongoDB.ObjectId.from_string(command_id)
-    assert_receive {:event, %{event: "LoggedIn", command_id: ^command_id, timer_id: _}}, 1000
+    assert_receive {:event, %{"event" => "LoggedIn", "command_id" => ^command_id, "timer_id" => _}}, 1000
   end
 
   test "invalid command" do
-    conn = conn(:post, "/commands", Poison.encode! %{command: "WhatCommandIsThis"})
+    conn = conn(:post, "/commands", Poison.encode! %{"command" => "WhatCommandIsThis"})
     |> put_req_header("content-type", "application/json")
     |> call
 

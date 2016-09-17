@@ -31,12 +31,12 @@ defmodule Veggy.Countdown do
 
   def handle_info({:ended, pomodoro_id, aggregate_id}, pomodori) do
     {{_, user_id}, pomodori} = Map.pop(pomodori, pomodoro_id)
-    EventStore.emit(%{event: "PomodoroEnded",
-                      aggregate_id: aggregate_id,
-                      timer_id: aggregate_id,
-                      pomodoro_id: pomodoro_id,
-                      user_id: user_id,
-                      id: Veggy.UUID.new})
+    EventStore.emit(%{"event" => "PomodoroEnded",
+                      "aggregate_id" => aggregate_id,
+                      "timer_id" => aggregate_id,
+                      "pomodoro_id" => pomodoro_id,
+                      "user_id" => user_id,
+                      "id" => Veggy.UUID.new})
     {:noreply, pomodori}
   end
 end

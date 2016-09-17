@@ -4,12 +4,12 @@ defmodule Veggy.Projection.Commands do
   @collection "projection.commands"
 
   def init do
-    Veggy.EventStore.subscribe(self, &match?(%{event: "CommandSucceeded"}, &1))
-    Veggy.EventStore.subscribe(self, &match?(%{event: "CommandFailed"}, &1))
-    # TODO: create appropriate indexs
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "CommandSucceeded"}, &1))
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "CommandFailed"}, &1))
+    # "TODO" => create appropriate indexs
   end
 
-  def fetch(%{event: _, command_id: command_id}) do
+  def fetch(%{"event" => _, "command_id" => command_id}) do
     case Mongo.find(Veggy.MongoDB, @collection, %{"command_id" => command_id}) |> Enum.to_list do
       [] -> %{}
       [d] -> d
@@ -20,10 +20,10 @@ defmodule Veggy.Projection.Commands do
     Mongo.save_one(Veggy.MongoDB, @collection, record)
   end
 
-  def process(%{event: "CommandSucceeded", command_id: command_id}, _) do
+  def process(%{"event" => "CommandSucceeded", "command_id" => command_id}, _) do
     %{"command_id" => command_id, "status" => "succeeded"}
   end
-  def process(%{event: "CommandFailed", command_id: command_id}, _) do
+  def process(%{"event" => "CommandFailed", "command_id" => command_id}, _) do
     %{"command_id" => command_id, "status" => "failed"}
   end
 

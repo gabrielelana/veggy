@@ -7,7 +7,7 @@ defmodule Veggy.EventStore do
     offset = offset_of_last_event
     GenServer.start_link(__MODULE__, %{offset: offset, subscriptions: %{}}, name: __MODULE__)
   end
-  def emit(%{event: _} = event) do
+  def emit(%{"event" => _} = event) do
     GenServer.cast(__MODULE__, {:event, event})
   end
 
@@ -38,14 +38,14 @@ defmodule Veggy.EventStore do
 
   defp enrich(event, offset) do
     event
-    |> Map.put(:received_at, Veggy.MongoDB.DateTime.utc_now)
-    |> Map.put(:offset, offset)
+    |> Map.put("received_at", Veggy.MongoDB.DateTime.utc_now)
+    |> Map.put("offset", offset)
   end
 
   defp store(event) do
     event
-    |> Map.put(:_id, event.id)
-    |> Map.delete(:id)
+    |> Map.put("_id", event["id"])
+    |> Map.delete("id")
     |> (&Mongo.save_one(Veggy.MongoDB, @collection, &1)).()
     event
   end

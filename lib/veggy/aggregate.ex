@@ -42,18 +42,18 @@ defmodule Veggy.Aggregate do
     GenServer.start_link(__MODULE__, %{id: id, module: module, aggregate: nil})
   end
 
-  def handle(pid, %{command: _} = command) do
+  def handle(pid, %{"command" => _} = command) do
     GenServer.cast(pid, {:handle, command})
   end
-  def rollback(pid, %{command: _} = command) do
+  def rollback(pid, %{"command" => _} = command) do
     GenServer.cast(pid, {:rollback, command})
   end
 
 
-  def handle_cast({op, %{command: _} = command}, %{aggregate: nil} = state),
+  def handle_cast({op, %{"command" => _} = command}, %{aggregate: nil} = state),
     do: handle_cast({op, command}, %{state | aggregate: do_init(state)})
 
-  def handle_cast({:handle, %{command: _} = command}, state) do
+  def handle_cast({:handle, %{"command" => _} = command}, state) do
     Veggy.EventStore.emit(received(command))
 
     {outcome_event, emitted_events, related_commands} =
@@ -79,7 +79,7 @@ defmodule Veggy.Aggregate do
     {:noreply, %{state | aggregate: aggregate_state}}
   end
 
-  def handle_cast({:rollback, %{command: _} = command}, state) do
+  def handle_cast({:rollback, %{"command" => _} = command}, state) do
     {outcome_event, emitted_events} =
       rollback_command(command, state.module, state.aggregate)
 
@@ -131,8 +131,8 @@ defmodule Veggy.Aggregate do
     do: correlate_outcome(outcome, events, commands)
   def correlate_outcome(outcome, events, commands) do
     outcome
-    |> Map.put(:events, Enum.map(events, &Map.get(&1, :id)))
-    |> Map.put(:commands, Enum.map(commands, &Map.get(&1, :id)))
+    |> Map.put("events", Enum.map(events, &Map.get(&1, "id")))
+    |> Map.put("commands", Enum.map(commands, &Map.get(&1, "id")))
   end
 
   def route_commands(parent, {:fork, commands}), do: Veggy.Transaction.ForkAndJoin.start(parent, commands)
@@ -160,18 +160,18 @@ defmodule Veggy.Aggregate do
     aggregate
   end
 
-  defp received(%{command: _} = command),
-    do: %{event: "CommandReceived", command_id: command.id, command: command, id: Veggy.UUID.new}
+  defp received(%{"command" => _, "id" => id} = command),
+    do: %{"event" => "CommandReceived", "command_id" => id, "command" => command, "id" => Veggy.UUID.new}
 
-  defp succeeded(%{command: _} = command),
-    do: %{event: "CommandSucceeded", command_id: command.id, id: Veggy.UUID.new}
+  defp succeeded(%{"id" => id}),
+    do: %{"event" => "CommandSucceeded", "command_id" => id, "id" => Veggy.UUID.new}
 
-  defp splitted(%{command: _} = command),
-    do: %{event: "CommandSplitted", command_id: command.id, id: Veggy.UUID.new}
+  defp splitted(%{"id" => id}),
+    do: %{"event" => "CommandSplitted", "command_id" => id, "id" => Veggy.UUID.new}
 
-  defp failed(%{command: _} = command, reason),
-    do: %{event: "CommandFailed", command_id: command.id, why: reason, id: Veggy.UUID.new}
+  defp failed(%{"id" => id}, reason),
+    do: %{"event" => "CommandFailed", "command_id" => id, "why" => reason, "id" => Veggy.UUID.new}
 
-  defp rolledback(%{command: _} = command),
-    do: %{event: "CommandRolledBack", command_id: command.id, id: Veggy.UUID.new}
+  defp rolledback(%{"id" => id}),
+    do: %{"event" => "CommandRolledBack", "command_id" => id, "id" => Veggy.UUID.new}
 end

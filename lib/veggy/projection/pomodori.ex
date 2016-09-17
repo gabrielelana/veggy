@@ -17,14 +17,14 @@ defmodule Veggy.Projection.Pomodori do
   # "PomodoroEnded": aggregate_id, pomodoro_id
 
   def init do
-    Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroStarted"}, &1))
-    Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroSquashed"}, &1))
-    Veggy.EventStore.subscribe(self, &match?(%{event: "PomodoroEnded"}, &1))
-    # TODO: create appropriate indexes
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroStarted"}, &1))
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroSquashed"}, &1))
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroEnded"}, &1))
+    # "TODO" => create appropriate indexes
   end
 
 
-  def fetch(%{pomodoro_id: pomodoro_id}) do
+  def fetch(%{"pomodoro_id" => pomodoro_id}) do
     case Mongo.find(Veggy.MongoDB, @collection, %{"pomodoro_id" => pomodoro_id}) |> Enum.to_list do
       [] -> %{}
       [d] -> d
@@ -37,24 +37,24 @@ defmodule Veggy.Projection.Pomodori do
   end
 
 
-  def process(%{event: "PomodoroStarted"} = event, %{}) do
-    %{"pomodoro_id" => event.pomodoro_id,
-      "timer_id" => event.aggregate_id,
-      "started_at" => event.received_at,
-      "tags" => Veggy.Task.extract_tags(event.description),
+  def process(%{"event" => "PomodoroStarted"} = event, %{}) do
+    %{"pomodoro_id" => event["pomodoro_id"],
+      "timer_id" => event["aggregate_id"],
+      "started_at" => event["received_at"],
+      "tags" => Veggy.Task.extract_tags(event["description"]),
       "ticking" => true,
-      "duration" => event.duration}
+      "duration" => event["duration"]}
   end
 
-  def process(%{event: "PomodoroEnded"} = event, record) do
+  def process(%{"event" => "PomodoroEnded"} = event, record) do
     record
-    |> Map.put("ended_at", event.received_at)
+    |> Map.put("ended_at", event["received_at"])
     |> Map.put("ticking", false)
   end
 
-  def process(%{event: "PomodoroSquashed"} = event, record) do
+  def process(%{"event" => "PomodoroSquashed"} = event, record) do
     record
-    |> Map.put("squashed_at", event.received_at)
+    |> Map.put("squashed_at", event["received_at"])
     |> Map.put("ticking", false)
   end
 

@@ -5,7 +5,7 @@ defmodule Veggy.Aggregates do
     GenServer.start_link(__MODULE__, %{modules: modules, registry: %{}}, name: __MODULE__)
   end
 
-  def dispatch(%{command: _} = command) do
+  def dispatch(%{"command" => _} = command) do
     GenServer.cast(__MODULE__, {:dispatch, command})
   end
   def dispatch(%Plug.Conn{} = request) do
@@ -40,7 +40,7 @@ defmodule Veggy.Aggregates do
     {:noreply, %{state | registry: registry}}
   end
 
-  defp aggregate_for(registry, %{aggregate_id: id, aggregate_module: module}) do
+  defp aggregate_for(registry, %{"aggregate_id" => id, "aggregate_module" => module}) do
     Map.get_and_update(registry, id, &spawn_aggregate(&1, id, module))
   end
 

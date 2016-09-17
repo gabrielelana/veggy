@@ -35,6 +35,6 @@ defmodule Veggy.WS do
     :ok
   end
 
-  defp related_to_user(user_id, %{event: _, user_id: user_id}), do: true
+  defp related_to_user(user_id, %{"event" => _, "user_id" => user_id}), do: true
   defp related_to_user(_, _), do: false
 end
