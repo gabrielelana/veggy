@@ -8,6 +8,7 @@ defmodule Veggy.Projection.LatestPomodori do
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroStarted"}, &1))
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroSquashed"}, &1))
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroEnded"}, &1))
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroVoided"}, &1))
   end
 
 
@@ -17,7 +18,6 @@ defmodule Veggy.Projection.LatestPomodori do
       [d] -> d
     end
   end
-
 
   def store(record) do
     Mongo.save_one(Veggy.MongoDB, @collection, record)
@@ -35,9 +35,6 @@ defmodule Veggy.Projection.LatestPomodori do
     |> Map.put("username", event["username"])
   end
 
-
-  # "NOTE" => this means that the events must be ordered...
-  # "TODO" => projection as FSM that can push back events that are not in the wanted order?
   def process(%{"event" => "PomodoroStarted"} = event, record) do
     record
     |> Map.put("started_at", event["received_at"])
@@ -45,6 +42,7 @@ defmodule Veggy.Projection.LatestPomodori do
     |> Map.put("ticking", true)
     |> Map.delete("ended_at")
     |> Map.delete("squashed_at")
+    |> Map.put("_last", record)
   end
 
   def process(%{"event" => "PomodoroEnded"} = event, record) do
@@ -57,6 +55,14 @@ defmodule Veggy.Projection.LatestPomodori do
     record
     |> Map.put("squashed_at", event["received_at"])
     |> Map.put("ticking", false)
+  end
+
+  def process(%{"event" => "PomodoroVoided"}, %{"_last" => %{"started_at" => _} = last}) do
+    last
+  end
+
+  def process(%{"event" => "PomodoroVoided"}, %{"_last" => %{}}) do
+    :delete
   end
 
 

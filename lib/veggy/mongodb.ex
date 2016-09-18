@@ -51,12 +51,7 @@ defmodule Veggy.MongoDB do
 
         def store(aggregate) do
           aggregate = aggregate |> Map.put("_id", aggregate["id"]) |> Map.delete("id")
-          {:ok, _} = Mongo.replace_one(
-            Veggy.MongoDB,
-            @collection,
-            %{"_id" => aggregate["_id"]},
-            aggregate,
-            upsert: true)
+          {:ok, _} = Mongo.save_one(Veggy.MongoDB, @collection, aggregate)
         end
 
         defoverridable [fetch: 2, store: 1]
@@ -64,7 +59,6 @@ defmodule Veggy.MongoDB do
     end
 
     def collection_name(module_name) do
-      # TODO: pluralize with { :inflex, "~> 1.7.0" }
       module_name
       |> Module.split
       |> List.last
