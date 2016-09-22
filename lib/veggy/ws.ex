@@ -16,7 +16,7 @@ defmodule Veggy.WS do
   end
   def websocket_handle({:text, "login:" <> client_id}, req, state) do
     message = Poison.encode!(%{message: "ok"})
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "LoggedIn", "client_id" => ^client_id}, &1))
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => _, "client_id" => ^client_id}, &1))
     Veggy.EventStore.emit(%{"event" => "ClientConnected", "client_id" => client_id, "id" => Veggy.UUID.new})
     {:reply, {:text, message}, req, state}
   end
