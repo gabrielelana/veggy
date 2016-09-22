@@ -16,7 +16,7 @@ defmodule Veggy.Transaction.ForkAndJoin do
       command_id = command["id"]
       Veggy.EventStore.subscribe(self, &match?(%{"event" => "CommandSucceeded", "command_id" => ^command_id}, &1))
       Veggy.EventStore.subscribe(self, &match?(%{"event" => "CommandFailed", "command_id" => ^command_id}, &1))
-      Veggy.Aggregates.dispatch(command)
+      Veggy.Aggregates.handle(command)
     end)
     state =
       state

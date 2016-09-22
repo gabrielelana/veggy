@@ -5,17 +5,17 @@ defmodule Veggy.Aggregates do
     GenServer.start_link(__MODULE__, %{modules: modules, registry: %{}}, name: __MODULE__)
   end
 
-  def dispatch(%{"command" => _} = command) do
-    GenServer.cast(__MODULE__, {:dispatch, command})
-  end
-  def dispatch(%Plug.Conn{} = request) do
+  def handle(%Plug.Conn{} = request) do
     case GenServer.call(__MODULE__, {:route, request.params}) do
       {:ok, command} ->
-        GenServer.cast(__MODULE__, {:dispatch, command})
+        handle(command)
         {:ok, command}
       {:error, _} = error ->
         error
     end
+  end
+  def handle(%{"command" => _} = command) do
+    GenServer.cast(__MODULE__, {:handle, command})
   end
 
   def rollback(%{"command" => _} = command) do
@@ -27,7 +27,7 @@ defmodule Veggy.Aggregates do
     {:reply, command, state}
   end
 
-  def handle_cast({:dispatch, command}, %{registry: registry} = state) do
+  def handle_cast({:handle, command}, %{registry: registry} = state) do
     # TODO: how to ensure that a module implements a behaviour?
     {pid, registry} = aggregate_for(registry, command)
     Veggy.Aggregate.handle(pid, command)

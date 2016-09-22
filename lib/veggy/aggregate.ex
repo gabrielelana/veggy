@@ -140,7 +140,7 @@ defmodule Veggy.Aggregate do
   # def route_commands(parent, {:forward, command}), do: Veggy.Transaction.Forward.start(parent, command)
   def route_commands(_parent, commands) do
     # TODO: Veggy.Transaction.FireAndForget.start(parent, commands)
-    Enum.each(commands, &Veggy.Aggregates.dispatch/1)
+    Enum.each(commands, &Veggy.Aggregates.handle/1)
   end
 
   def process_events(events, aggregate_module, aggregate_state) do
