@@ -78,6 +78,7 @@ defmodule Veggy.Projection.LatestPomodori do
   def query("latest-pomodori", _) do
     Mongo.find(Veggy.MongoDB, @collection, %{})
     |> Enum.map(&Map.delete(&1, "_id"))
+    |> Enum.map(&Map.delete(&1, "_last"))
     |> (&{:ok, &1}).()
   end
 
