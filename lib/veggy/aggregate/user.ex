@@ -3,9 +3,10 @@ defmodule Veggy.Aggregate.User do
   # use Veggy.Aggregate
   use Veggy.MongoDB.Aggregate, collection: "aggregate.users"
 
-  def route(%{"command" => "Login", "username" => username} = params) do
-    {:ok, %{"command" => params["command"],
+  def route(%{"command" => "Login", "username" => username, "client_id" => client_id}) do
+    {:ok, %{"command" => "Login",
             "username" => username,
+            "client_id" => client_id,
             "aggregate_id" => "user/#{username}",
             "aggregate_module" => __MODULE__,
             "id" => Veggy.UUID.new}}
@@ -20,6 +21,7 @@ defmodule Veggy.Aggregate.User do
     event = %{"event" => "LoggedIn",
               "username" => command["username"],
               "user_id" => aggregate["id"],
+              "client_id" => command["client_id"],
               "aggregate_id" => aggregate["id"],
               "command_id" => command["id"],
               "timer_id" => aggregate["timer_id"],

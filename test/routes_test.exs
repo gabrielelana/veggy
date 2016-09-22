@@ -55,7 +55,7 @@ defmodule Veggy.RoutesTest do
   test "command Login" do
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "LoggedIn"}, &1))
 
-    conn = conn(:post, "/commands", Poison.encode! %{"command" => "Login", "username" => "gabriele"})
+    conn = conn(:post, "/commands", Poison.encode! %{"command" => "Login", "username" => "gabriele", "client_id" => 0})
     |> put_req_header("content-type", "application/json")
     |> call
 
