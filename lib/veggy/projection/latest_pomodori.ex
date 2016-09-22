@@ -7,7 +7,7 @@ defmodule Veggy.Projection.LatestPomodori do
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "LoggedIn"}, &1))
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroStarted"}, &1))
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroSquashed"}, &1))
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroEnded"}, &1))
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroCompleted"}, &1))
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroVoided"}, &1))
   end
 
@@ -39,22 +39,22 @@ defmodule Veggy.Projection.LatestPomodori do
     record
     |> Map.put("started_at", event["received_at"])
     |> Map.put("duration", event["duration"])
-    |> Map.put("ticking", true)
-    |> Map.delete("ended_at")
+    |> Map.put("status", "started")
+    |> Map.delete("completed_at")
     |> Map.delete("squashed_at")
     |> Map.put("_last", record)
   end
 
-  def process(%{"event" => "PomodoroEnded"} = event, record) do
+  def process(%{"event" => "PomodoroCompleted"} = event, record) do
     record
-    |> Map.put("ended_at", event["received_at"])
-    |> Map.put("ticking", false)
+    |> Map.put("completed_at", event["received_at"])
+    |> Map.put("status", "completed")
   end
 
   def process(%{"event" => "PomodoroSquashed"} = event, record) do
     record
     |> Map.put("squashed_at", event["received_at"])
-    |> Map.put("ticking", false)
+    |> Map.put("status", "squashed")
   end
 
   def process(%{"event" => "PomodoroVoided"}, %{"_last" => %{"started_at" => _} = last}) do
@@ -76,8 +76,7 @@ defmodule Veggy.Projection.LatestPomodori do
   end
 
   def query("latest-pomodori", _) do
-    query = %{"started_at" => %{"$exists" => true}}
-    Mongo.find(Veggy.MongoDB, @collection, query)
+    Mongo.find(Veggy.MongoDB, @collection, %{})
     |> Enum.map(&Map.delete(&1, "_id"))
     |> (&{:ok, &1}).()
   end

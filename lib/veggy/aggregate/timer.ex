@@ -39,7 +39,7 @@ defmodule Veggy.Aggregate.Timer do
   def route(_), do: nil
 
   def init(id) do
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroEnded", "aggregate_id" => ^id}, &1))
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroCompleted", "aggregate_id" => ^id}, &1))
     %{"id" => id, "ticking" => false}
   end
 
@@ -122,7 +122,7 @@ defmodule Veggy.Aggregate.Timer do
   def process(%{"event" => "PomodoroSquashed"}, s),
     do: s |> Map.put("ticking", false) |> Map.delete("pomodoro_id") |> Map.delete("shared_with")
 
-  def process(%{"event" => "PomodoroEnded"}, s),
+  def process(%{"event" => "PomodoroCompleted"}, s),
     do: s |> Map.put("ticking", false) |> Map.delete("pomodoro_id") |> Map.delete("shared_with")
 
   def process(%{"event" => "PomodoroVoided"}, s),

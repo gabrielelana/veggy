@@ -5,7 +5,7 @@ defmodule Veggy.RoutesTest do
   import Plug.Conn
 
   test "command StartPomodoro" do
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroEnded"}, &1))
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroCompleted"}, &1))
 
     timer_id = Veggy.UUID.new
     command = %{"command" => "StartPomodoro", "timer_id" => timer_id, "duration" => 10}
@@ -14,7 +14,7 @@ defmodule Veggy.RoutesTest do
     |> call
 
     assert_command_received(conn)
-    assert_receive {:event, %{"event" => "PomodoroEnded", "aggregate_id" => ^timer_id}}
+    assert_receive {:event, %{"event" => "PomodoroCompleted", "aggregate_id" => ^timer_id}}
   end
 
   test "command StartPomodoro with description" do
@@ -32,7 +32,7 @@ defmodule Veggy.RoutesTest do
   end
 
   test "command SquashPomodoro" do
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroEnded"}, &1))
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroCompleted"}, &1))
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroSquashed"}, &1))
 
     timer_id = Veggy.UUID.new
@@ -48,7 +48,7 @@ defmodule Veggy.RoutesTest do
     |> call
     assert_command_received(conn)
 
-    refute_receive {:event, %{"event" => "PomodoroEnded", "aggregate_id" => ^timer_id}}
+    refute_receive {:event, %{"event" => "PomodoroCompleted", "aggregate_id" => ^timer_id}}
     assert_receive {:event, %{"event" => "PomodoroSquashed", "aggregate_id" => ^timer_id}}
   end
 

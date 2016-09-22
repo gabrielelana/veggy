@@ -3,23 +3,10 @@ defmodule Veggy.Projection.Pomodori do
   # TODO: use Veggy.Mongo.Projection, collection: "projection.pomodori"
   @collection "projection.pomodori"
 
-  # RECORD:
-  # - pomodoro_id
-  # - timer_id
-  # - started_at
-  # - ended_at
-  # - squashed_at
-  # - ticking
-  # - description
-  # - duration
-
-  # "PomodoroStarted": aggregate_id, pomodoro_id, command_id, duration
-  # "PomodoroEnded": aggregate_id, pomodoro_id
-
   def init do
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroStarted"}, &1))
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroSquashed"}, &1))
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroEnded"}, &1))
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroCompleted"}, &1))
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroVoided"}, &1))
     %{}
   end
@@ -46,18 +33,18 @@ defmodule Veggy.Projection.Pomodori do
       "timer_id" => event["aggregate_id"],
       "started_at" => event["received_at"],
       "tags" => Veggy.Task.extract_tags(event["description"]),
-      "ticking" => true,
+      "status" => "started",
       "duration" => event["duration"]}
   end
-  def process(%{"event" => "PomodoroEnded"} = event, record) do
+  def process(%{"event" => "PomodoroCompleted"} = event, record) do
     record
-    |> Map.put("ended_at", event["received_at"])
-    |> Map.put("ticking", false)
+    |> Map.put("completed_at", event["received_at"])
+    |> Map.put("status", "completed")
   end
   def process(%{"event" => "PomodoroSquashed"} = event, record) do
     record
     |> Map.put("squashed_at", event["received_at"])
-    |> Map.put("ticking", false)
+    |> Map.put("status", "squashed")
   end
   def process(%{"event" => "PomodoroVoided"}, _) do
     :delete
@@ -73,6 +60,13 @@ defmodule Veggy.Projection.Pomodori do
     |> (&{:ok, &1}).()
   end
 
+  # TODO
+  # Veggy.Mongo.Projection.find(
+  #   @collection,
+  #   %{"timer_id" => timer_id
+  #     "started_at" => %{"$gte" => Timex.beginning_of_day(day),
+  #                       "$lte" => Timex.end_of_day(day)}})
+
   def query("pomodori-of-the-day", %{"day" => day, "timer_id" => timer_id} = parameters) do
     timer_id = Veggy.MongoDB.ObjectId.from_string(timer_id)
     case Timex.parse(day, "{YYYY}-{0M}-{0D}") do
@@ -84,14 +78,6 @@ defmodule Veggy.Projection.Pomodori do
         query = %{"started_at" => %{"$gte" => beginning_of_day, "$lte" => end_of_day},
                   "timer_id" => timer_id,
                  }
-
-        # TODO
-        # Veggy.Mongo.Projection.find(
-        #   @collection,
-        #   %{"timer_id" => timer_id
-        #     "started_at" => %{"$gte" => Timex.beginning_of_day(day),
-        #                       "$lte" => Timex.end_of_day(day)}})
-
         Mongo.find(Veggy.MongoDB, @collection, query)
         |> Enum.to_list
         |> (&{:ok, &1}).()
