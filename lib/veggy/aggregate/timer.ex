@@ -18,7 +18,6 @@ defmodule Veggy.Aggregate.Timer do
             "aggregate_id" => Veggy.MongoDB.ObjectId.from_string(params["timer_id"]),
             "aggregate_module" => __MODULE__,
             "reason" => Map.get(params, "reason", ""),
-            "shared_with" => Map.get(params, "shared_with", []),
             "id" => Veggy.UUID.new}}
   end
   def route(%{"command" => "StartSharedPomodoro"} = params) do
@@ -28,6 +27,13 @@ defmodule Veggy.Aggregate.Timer do
             "duration" => Map.get(params, "duration", @default_duration),
             "description" => Map.get(params, "description", ""),
             "shared_with" => Map.get(params, "shared_with", []) |> Enum.map(&Veggy.MongoDB.ObjectId.from_string/1),
+            "id" => Veggy.UUID.new}}
+  end
+  def route(%{"command" => "SquashSharedPomodoro"} = params) do
+    {:ok, %{"command" => "SquashSharedPomodoro",
+            "aggregate_id" => Veggy.MongoDB.ObjectId.from_string(params["timer_id"]),
+            "aggregate_module" => __MODULE__,
+            "reason" => Map.get(params, "reason", ""),
             "id" => Veggy.UUID.new}}
   end
   def route(_), do: nil
@@ -56,25 +62,21 @@ defmodule Veggy.Aggregate.Timer do
             "timer_id" => aggregate["id"],
             "duration" => command["duration"],
             "description" => command["description"],
+            "shared_with" => command["shared_with"],
             "id" => Veggy.UUID.new}}
   end
   def handle(%{"command" => "SquashPomodoro"}, %{"ticking" => false}), do: {:error, "Pomodoro is not ticking, nothing to squash"}
-  def handle(%{"command" => "SquashPomodoro", "shared_with" => shared_with} = command, %{"pomodoro_id" => pomodoro_id} = aggregate) do
+  def handle(%{"command" => "SquashPomodoro"} = command, %{"pomodoro_id" => pomodoro_id} = aggregate) do
     :ok = Veggy.Countdown.squash(pomodoro_id)
-    commands = Enum.map(shared_with, fn(timer_id) ->
-      %{command | "aggregate_id" => timer_id, "id" => Veggy.UUID.new} |> Map.delete("shared_with")
-    end)
-    events = [
-      %{"event" => "PomodoroSquashed",
-        "pomodoro_id" => pomodoro_id,
-        "user_id" => aggregate["user_id"],
-        "command_id" => command["id"],
-        "aggregate_id" => aggregate["id"],
-        "timer_id" => aggregate["id"],
-        "reason" => command["reason"],
-        "id" => Veggy.UUID.new,
-       }]
-    {:ok, events, commands}
+    {:ok, %{"event" => "PomodoroSquashed",
+            "pomodoro_id" => pomodoro_id,
+            "user_id" => aggregate["user_id"],
+            "command_id" => command["id"],
+            "aggregate_id" => aggregate["id"],
+            "timer_id" => aggregate["id"],
+            "reason" => command["reason"],
+            "id" => Veggy.UUID.new,
+           }}
   end
   def handle(%{"command" => "StartSharedPomodoro", "shared_with" => shared_with} = command, aggregate) do
     pairs = [aggregate["id"] | shared_with]
@@ -88,6 +90,13 @@ defmodule Veggy.Aggregate.Timer do
                   "id" => Veggy.UUID.new}
       end)
     {:ok, [], {:fork, commands}}
+  end
+  def handle(%{"command" => "SquashSharedPomodoro"} = command, %{"shared_with" => shared_with} = aggregate) do
+    pairs = [aggregate["id"] | shared_with]
+    commands = Enum.map(pairs, fn(timer_id) ->
+      %{command | "command" => "SquashPomodoro", "aggregate_id" => timer_id, "id" => Veggy.UUID.new}
+    end)
+    {:ok, [], commands}
   end
 
   # "TODO" => ensure that the current pomodoro has been started by the same command we are rolling back
@@ -107,14 +116,11 @@ defmodule Veggy.Aggregate.Timer do
   def process(%{"event" => "TimerCreated", "user_id" => user_id}, s),
     do: Map.put(s, "user_id", user_id)
 
-  def process(%{"event" => "PomodoroStarted", "pomodoro_id" => pomodoro_id}, s),
-    do: s |> Map.put("ticking", true) |> Map.put("pomodoro_id", pomodoro_id)
-
   def process(%{"event" => "PomodoroStarted", "pomodoro_id" => pomodoro_id, "shared_with" => shared_with}, s),
     do: s |> Map.put("ticking", true) |> Map.put("pomodoro_id", pomodoro_id) |> Map.put("shared_with", shared_with)
 
   def process(%{"event" => "PomodoroSquashed"}, s),
-    do: s |> Map.put("ticking", false) |> Map.delete("pomodoro_id")
+    do: s |> Map.put("ticking", false) |> Map.delete("pomodoro_id") |> Map.delete("shared_with")
 
   def process(%{"event" => "PomodoroEnded"}, s),
     do: s |> Map.put("ticking", false) |> Map.delete("pomodoro_id") |> Map.delete("shared_with")
