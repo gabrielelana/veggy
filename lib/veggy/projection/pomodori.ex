@@ -33,6 +33,7 @@ defmodule Veggy.Projection.Pomodori do
       "timer_id" => event["aggregate_id"],
       "started_at" => event["received_at"],
       "tags" => Veggy.Task.extract_tags(event["description"]),
+      "shared_with" => event["shared_with"],
       "status" => "started",
       "duration" => event["duration"]}
   end
