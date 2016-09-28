@@ -14,10 +14,10 @@ defmodule Veggy do
       worker(Veggy.Aggregates, [
             [Veggy.Aggregate.Timer,
              Veggy.Aggregate.User]]),
-      worker(Veggy.Projections, [
-            [Veggy.Projection.Commands,
-             Veggy.Projection.Pomodori,
-             Veggy.Projection.LatestPomodori]]),
+      worker(Veggy.Projections, [[Veggy.Projection.Pomodori]]),
+            # [Veggy.Projection.Commands,
+            #  Veggy.Projection.Pomodori,
+            #  Veggy.Projection.LatestPomodori]]),
       Plug.Adapters.Cowboy.child_spec(:http, Veggy.HTTP, [],
         [port: 4000, dispatch: dispatch]),
     ]

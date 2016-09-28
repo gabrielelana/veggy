@@ -24,7 +24,7 @@ defmodule Veggy.EventStore do
 
   def after_offset(offset, filter \\ fn(_) -> true end, limit \\ 100) do
     # TODO: maybe will be better to spawn a process that will send events as messages to the process that requested them
-    GenServer.call(__MODULE__, {:fetch, %{"offset" => %{"$gte" => offset}}, filter, limit})
+    GenServer.call(__MODULE__, {:fetch, %{"offset" => %{"$gt" => offset}}, filter, limit})
   end
 
 

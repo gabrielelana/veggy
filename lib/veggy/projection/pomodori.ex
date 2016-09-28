@@ -5,13 +5,20 @@ defmodule Veggy.Projection.Pomodori do
 
   def init do
     Veggy.MongoDB.create_index(@collection, %{"_offset" => 1})
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroStarted"}, &1))
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroSquashed"}, &1))
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroCompleted"}, &1))
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroVoided"}, &1))
-    %{}
+    {:ok, offset, ["PomodoroStarted", "PomodoroSquashed", "PomodoroCompleted", "PomodoroVoided"]}
   end
 
+  # TODO: put into Veggy.Mongo.Projection
+  def offset do
+    query = %{"_offset" => %{"$exists" => true}}
+    options = [order_by: %{"_offset" => -1}, projection: %{"_offset" => 1}, limit: 1]
+    case Mongo.find(Veggy.MongoDB, @collection, query, options) |> Enum.to_list do
+      [] -> -1
+      [%{"_offset" => offset}] -> offset
+    end
+  end
+
+  # TODO: put into Veggy.Mongo.Projection
   def fetch(%{"pomodoro_id" => pomodoro_id}) do
     case Mongo.find(Veggy.MongoDB, @collection, %{"pomodoro_id" => pomodoro_id}) |> Enum.to_list do
       [] -> %{}
@@ -19,12 +26,15 @@ defmodule Veggy.Projection.Pomodori do
     end
   end
 
-  def store(record) do
-    Mongo.save_one(Veggy.MongoDB, @collection, record)
+  # TODO: put into Veggy.Mongo.Projection
+  def store(record, offset) do
+    Mongo.save_one(Veggy.MongoDB, @collection, record |> Map.put("_offset", offset))
   end
 
-  def delete(record) do
+  # TODO: put into Veggy.Mongo.Projection
+  def delete(record, offset) do
     Mongo.delete_one(Veggy.MongoDB, @collection, %{"_id" => record["_id"]})
+    Mongo.save_one(Veggy.MongoDB, @collection, %{"_id" => "_offset", "_offset" => offset})
   end
 
 
