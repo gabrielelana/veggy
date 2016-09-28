@@ -68,6 +68,24 @@ defmodule Veggy.MongoDB do
     end
   end
 
+  def create_index(collection_name, index_keys) do
+    Mongo.run_command(Veggy.MongoDB,
+      %{createIndexes: collection_name,
+        indexes: [
+          %{"ns" => "#{dbname}.#{collection_name}",
+            "key" => index_keys,
+            "name" => generate_index_name(index_keys)
+           }
+        ]})
+  end
+
+  defp generate_index_name(index_keys) do
+    Enum.reduce(index_keys, "",
+      fn({k,v}, "") -> "#{k}_#{v}"
+        ({k,v}, s) -> s <> "_#{k}_#{v}"
+      end)
+  end
+
   defp dbname do
     case Mix.env do
       :prod -> "veggy"

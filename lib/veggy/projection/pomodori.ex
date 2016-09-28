@@ -4,13 +4,13 @@ defmodule Veggy.Projection.Pomodori do
   @collection "projection.pomodori"
 
   def init do
+    Veggy.MongoDB.create_index(@collection, %{"_offset" => 1})
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroStarted"}, &1))
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroSquashed"}, &1))
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroCompleted"}, &1))
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroVoided"}, &1))
     %{}
   end
-
 
   def fetch(%{"pomodoro_id" => pomodoro_id}) do
     case Mongo.find(Veggy.MongoDB, @collection, %{"pomodoro_id" => pomodoro_id}) |> Enum.to_list do
