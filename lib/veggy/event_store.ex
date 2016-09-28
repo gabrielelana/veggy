@@ -7,6 +7,7 @@ defmodule Veggy.EventStore do
     offset = offset_of_last_event
     GenServer.start_link(__MODULE__, %{offset: offset, subscriptions: %{}}, name: __MODULE__)
   end
+
   def emit(%{"event" => _} = event) do
     GenServer.cast(__MODULE__, {:event, event})
   end
@@ -21,12 +22,17 @@ defmodule Veggy.EventStore do
     GenServer.cast(__MODULE__, {:unsubscribe, reference})
   end
 
+  def after_offset(offset, filter \\ fn(_) -> true end, limit \\ 100) do
+    # TODO: maybe will be better to spawn a process that will send events as messages to the process that requested them
+    GenServer.call(__MODULE__, {:fetch, %{"offset" => %{"$gte" => offset}}, filter, limit})
+  end
+
+
   def handle_cast({:event, event}, %{subscriptions: subscriptions, offset: offset} = state) do
     event
     |> enrich(offset)
     |> store
     |> dispatch(subscriptions)
-
     {:noreply, %{state | offset: offset + 1}}
   end
   def handle_cast({:subscribe, reference, check, pid}, %{subscriptions: subscriptions} = state) do
@@ -35,6 +41,15 @@ defmodule Veggy.EventStore do
   def handle_cast({:unsubscribe, reference}, %{subscriptions: subscriptions} = state) do
     {:noreply, %{state | subscriptions: Map.delete(subscriptions, reference)}}
   end
+
+  def handle_call({:fetch, query, filter, limit}, _from, state) do
+    events =
+      Mongo.find(Veggy.MongoDB, @collection, query, sort: [offset: 1], limit: limit)
+      |> Enum.to_list
+      |> Enum.filter(filter)
+    {:reply, events, state}
+  end
+
 
   defp enrich(event, offset) do
     event
