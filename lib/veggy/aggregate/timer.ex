@@ -5,6 +5,13 @@ defmodule Veggy.Aggregate.Timer do
   use Veggy.MongoDB.Aggregate, collection: "aggregate.timers"
 
   def route(%{"command" => "StartPomodoro"} = params) do
+    # validate params do
+    #   timer_id <- required("timer_id") |> to(:mongoid)
+    #   duration <- optional("duration", "")
+    #   description <- optional("description", "")
+    #   shared_with <- optional("shared_with", [])
+    #   command("StartPomodoro", timer_id, [duration, description, shared_with])
+    # end
     {:ok, %{"command" => "StartPomodoro",
             "aggregate_id" => Veggy.MongoDB.ObjectId.from_string(params["timer_id"]),
             "aggregate_module" => __MODULE__,
