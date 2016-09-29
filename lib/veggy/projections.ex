@@ -16,6 +16,7 @@ defmodule Veggy.Projections do
   end
 
   def handle_call({:query, projection_name, parameters}, _from, %{modules: modules} = state) do
+    # TODO: catch function clause error
     result = Enum.find_value(modules, {:not_found, :projection}, &(&1.query(projection_name, parameters)))
     {:reply, result, state}
   end

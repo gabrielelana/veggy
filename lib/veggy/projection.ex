@@ -16,7 +16,6 @@ defmodule Veggy.Projection do
 
   def init(%{module: module}) do
     {:ok, offset, filter} = module.init
-    # IO.inspect("Starting at offset #{offset}")
     Process.send_after(self, :process, @polling_interval)
     {:ok, %{module: module, offset: offset, filter: filter(filter)}}
   end
@@ -31,7 +30,6 @@ defmodule Veggy.Projection do
   end
 
   defp process(module, %{"_offset" => offset} = event, _offset) do
-    # IO.inspect({:process, event, offset})
     record = module.fetch(event)
     # IO.inspect({:fetch, :record, record})
     case module.process(event, record) do
