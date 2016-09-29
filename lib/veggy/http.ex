@@ -20,7 +20,7 @@ defmodule Veggy.HTTP do
       {:ok, command} ->
         conn
         |> put_resp_header("content-type", "application/json")
-        |> put_resp_header("location", url_for(conn, "/projections/command-status?command_id=#{command["id"]}"))
+        |> put_resp_header("location", url_for(conn, "/projections/command-status?command_id=#{command["_id"]}"))
         |> send_resp(201, Poison.encode!(command))
       {:error, reason} ->
         conn

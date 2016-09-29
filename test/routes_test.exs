@@ -81,10 +81,10 @@ defmodule Veggy.RoutesTest do
     assert {"content-type", "application/json"} in conn.resp_headers
 
     command = Poison.decode!(conn.resp_body)
-    expected_location = "#{conn.scheme}://#{conn.host}:#{conn.port}/projections/command-status?command_id=#{command["id"]}"
+    expected_location = "#{conn.scheme}://#{conn.host}:#{conn.port}/projections/command-status?command_id=#{command["_id"]}"
     assert {"location", expected_location} in conn.resp_headers
 
-    command["id"]
+    command["_id"]
   end
 
   defp call(conn), do: Veggy.HTTP.call(conn, [])

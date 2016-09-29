@@ -37,7 +37,7 @@ defmodule Veggy.Countdown do
                       "pomodoro_id" => pomodoro_id,
                       "user_id" => user_id,
                       "command_id" => command_id,
-                      "id" => Veggy.UUID.new})
+                      "_id" => Veggy.UUID.new})
     {:noreply, pomodori}
   end
 end
