@@ -30,7 +30,7 @@ defmodule Veggy.Projection do
     {:noreply, %{state|offset: offset}}
   end
 
-  defp process(module, %{"offset" => offset} = event, _offset) do
+  defp process(module, %{"_offset" => offset} = event, _offset) do
     # IO.inspect({:process, event, offset})
     record = module.fetch(event)
     # IO.inspect({:fetch, :record, record})

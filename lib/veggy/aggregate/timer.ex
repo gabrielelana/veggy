@@ -18,14 +18,14 @@ defmodule Veggy.Aggregate.Timer do
             "duration" => Map.get(params, "duration", @default_duration),
             "description" => Map.get(params, "description", ""),
             "shared_with" => Map.get(params, "shared_with", []),
-            "id" => Veggy.UUID.new}}
+            "_id" => Veggy.UUID.new}}
   end
   def route(%{"command" => "SquashPomodoro"} = params) do
     {:ok, %{"command" => "SquashPomodoro",
             "aggregate_id" => Veggy.MongoDB.ObjectId.from_string(params["timer_id"]),
             "aggregate_module" => __MODULE__,
             "reason" => Map.get(params, "reason", ""),
-            "id" => Veggy.UUID.new}}
+            "_id" => Veggy.UUID.new}}
   end
   def route(%{"command" => "StartSharedPomodoro"} = params) do
     {:ok, %{"command" => "StartSharedPomodoro",
@@ -34,14 +34,14 @@ defmodule Veggy.Aggregate.Timer do
             "duration" => Map.get(params, "duration", @default_duration),
             "description" => Map.get(params, "description", ""),
             "shared_with" => Map.get(params, "shared_with", []) |> Enum.map(&Veggy.MongoDB.ObjectId.from_string/1),
-            "id" => Veggy.UUID.new}}
+            "_id" => Veggy.UUID.new}}
   end
   def route(%{"command" => "SquashSharedPomodoro"} = params) do
     {:ok, %{"command" => "SquashSharedPomodoro",
             "aggregate_id" => Veggy.MongoDB.ObjectId.from_string(params["timer_id"]),
             "aggregate_module" => __MODULE__,
             "reason" => Map.get(params, "reason", ""),
-            "id" => Veggy.UUID.new}}
+            "_id" => Veggy.UUID.new}}
   end
   def route(_), do: nil
 
@@ -52,25 +52,27 @@ defmodule Veggy.Aggregate.Timer do
 
   def handle(%{"command" => "CreateTimer", "user_id" => user_id} = command, aggregate) do
     {:ok, %{"event" => "TimerCreated",
-            "command_id" => command["id"],
+            "command_id" => command["_id"],
             "aggregate_id" => aggregate["id"],
             "timer_id" => aggregate["id"],
             "user_id" => user_id,
-            "id" => Veggy.UUID.new}}
+            "_id" => Veggy.UUID.new}}
   end
   def handle(%{"command" => "StartPomodoro"}, %{"ticking" => true}), do: {:error, "Pomodoro is ticking"}
   def handle(%{"command" => "StartPomodoro"} = command, aggregate) do
-    {:ok, pomodoro_id} = Veggy.Countdown.start(command["duration"], aggregate["id"], aggregate["user_id"], command["id"])
+    IO.inspect({"StartPomodoro", command})
+    {:ok, pomodoro_id} = Veggy.Countdown.start(command["duration"], aggregate["id"], aggregate["user_id"], command["_id"])
+    IO.inspect({"PomodoroStarted", pomodoro_id})
     {:ok, %{"event" => "PomodoroStarted",
             "pomodoro_id" => pomodoro_id,
             "user_id" => aggregate["user_id"],
-            "command_id" => command["id"],
+            "command_id" => command["_id"],
             "aggregate_id" => aggregate["id"],
             "timer_id" => aggregate["id"],
             "duration" => command["duration"],
             "description" => command["description"],
             "shared_with" => command["shared_with"],
-            "id" => Veggy.UUID.new}}
+            "_id" => Veggy.UUID.new}}
   end
   def handle(%{"command" => "SquashPomodoro"}, %{"ticking" => false}), do: {:error, "Pomodoro is not ticking, nothing to squash"}
   def handle(%{"command" => "SquashPomodoro"} = command, %{"pomodoro_id" => pomodoro_id} = aggregate) do
@@ -78,11 +80,11 @@ defmodule Veggy.Aggregate.Timer do
     {:ok, %{"event" => "PomodoroSquashed",
             "pomodoro_id" => pomodoro_id,
             "user_id" => aggregate["user_id"],
-            "command_id" => command["id"],
+            "command_id" => command["_id"],
             "aggregate_id" => aggregate["id"],
             "timer_id" => aggregate["id"],
             "reason" => command["reason"],
-            "id" => Veggy.UUID.new,
+            "_id" => Veggy.UUID.new,
            }}
   end
   def handle(%{"command" => "StartSharedPomodoro", "shared_with" => shared_with} = command, aggregate) do
@@ -94,14 +96,14 @@ defmodule Veggy.Aggregate.Timer do
                   "duration" => command["duration"],
                   "description" => command["description"],
                   "shared_with" => pairs -- [id],
-                  "id" => Veggy.UUID.new}
+                  "_id" => Veggy.UUID.new}
       end)
     {:ok, [], {:fork, commands}}
   end
   def handle(%{"command" => "SquashSharedPomodoro"} = command, %{"shared_with" => shared_with} = aggregate) do
     pairs = [aggregate["id"] | shared_with]
     commands = Enum.map(pairs, fn(timer_id) ->
-      %{command | "command" => "SquashPomodoro", "aggregate_id" => timer_id, "id" => Veggy.UUID.new}
+      %{command | "command" => "SquashPomodoro", "aggregate_id" => timer_id, "_id" => Veggy.UUID.new}
     end)
     {:ok, [], commands}
   end
@@ -113,10 +115,10 @@ defmodule Veggy.Aggregate.Timer do
     {:ok, %{"event" => "PomodoroVoided",
             "pomodoro_id" => pomodoro_id,
             "user_id" => aggregate["user_id"],
-            "command_id" => command["id"],
+            "command_id" => command["_id"],
             "aggregate_id" => aggregate["id"],
             "timer_id" => aggregate["id"],
-            "id" => Veggy.UUID.new}}
+            "_id" => Veggy.UUID.new}}
   end
 
 

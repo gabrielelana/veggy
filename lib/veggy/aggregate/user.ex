@@ -8,7 +8,7 @@ defmodule Veggy.Aggregate.User do
             "username" => username,
             "aggregate_id" => "user/#{username}",
             "aggregate_module" => __MODULE__,
-            "id" => Veggy.UUID.new}}
+            "_id" => Veggy.UUID.new}}
   end
   def route(_), do: nil
 
@@ -21,14 +21,14 @@ defmodule Veggy.Aggregate.User do
               "username" => command["username"],
               "user_id" => aggregate["id"],
               "aggregate_id" => aggregate["id"],
-              "command_id" => command["id"],
+              "command_id" => command["_id"],
               "timer_id" => aggregate["timer_id"],
-              "id" => Veggy.UUID.new}
+              "_id" => Veggy.UUID.new}
     command = %{"command" => "CreateTimer",
                 "aggregate_id" => aggregate["timer_id"],
                 "aggregate_module" => Veggy.Aggregate.Timer,
                 "user_id" => aggregate["id"],
-                "id" => Veggy.UUID.new}
+                "_id" => Veggy.UUID.new}
     {:ok, [event], [command]}
   end
 

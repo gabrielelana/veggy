@@ -24,7 +24,7 @@ defmodule Veggy.EventStore do
 
   def after_offset(offset, filter \\ fn(_) -> true end, limit \\ 100) do
     # TODO: maybe will be better to spawn a process that will send events as messages to the process that requested them
-    GenServer.call(__MODULE__, {:fetch, %{"offset" => %{"$gt" => offset}}, filter, limit})
+    GenServer.call(__MODULE__, {:fetch, %{"_offset" => %{"$gt" => offset}}, filter, limit})
   end
 
 
@@ -53,15 +53,12 @@ defmodule Veggy.EventStore do
 
   defp enrich(event, offset) do
     event
-    |> Map.put("received_at", Veggy.MongoDB.DateTime.utc_now)
-    |> Map.put("offset", offset)
+    |> Map.put("_received_at", Veggy.MongoDB.DateTime.utc_now)
+    |> Map.put("_offset", offset)
   end
 
   defp store(event) do
-    event
-    |> Map.put("_id", event["id"])
-    |> Map.delete("id")
-    |> (&Mongo.save_one(Veggy.MongoDB, @collection, &1)).()
+    Mongo.save_one(Veggy.MongoDB, @collection, event)
     event
   end
 
@@ -72,9 +69,9 @@ defmodule Veggy.EventStore do
   end
 
   defp offset_of_last_event do
-    last_event = Mongo.find(Veggy.MongoDB, @collection, %{}, sort: [offset: -1], limit: 1) |> Enum.to_list
+    last_event = Mongo.find(Veggy.MongoDB, @collection, %{}, sort: %{"_offset" => -1}, limit: 1) |> Enum.to_list
     case last_event do
-      [event] -> event["offset"]
+      [event] -> event["_offset"]
       _ -> 0
     end
   end

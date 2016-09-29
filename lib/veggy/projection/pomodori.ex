@@ -41,7 +41,7 @@ defmodule Veggy.Projection.Pomodori do
   def process(%{"event" => "PomodoroStarted"} = event, %{}) do
     %{"pomodoro_id" => event["pomodoro_id"],
       "timer_id" => event["aggregate_id"],
-      "started_at" => event["received_at"],
+      "started_at" => event["_received_at"],
       "tags" => Veggy.Task.extract_tags(event["description"]),
       "shared_with" => event["shared_with"],
       "status" => "started",
@@ -49,12 +49,12 @@ defmodule Veggy.Projection.Pomodori do
   end
   def process(%{"event" => "PomodoroCompleted"} = event, record) do
     record
-    |> Map.put("completed_at", event["received_at"])
+    |> Map.put("completed_at", event["_received_at"])
     |> Map.put("status", "completed")
   end
   def process(%{"event" => "PomodoroSquashed"} = event, record) do
     record
-    |> Map.put("squashed_at", event["received_at"])
+    |> Map.put("squashed_at", event["_received_at"])
     |> Map.put("status", "squashed")
   end
   def process(%{"event" => "PomodoroVoided"}, _) do

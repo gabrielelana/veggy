@@ -131,8 +131,8 @@ defmodule Veggy.Aggregate do
     do: correlate_outcome(outcome, events, commands)
   def correlate_outcome(outcome, events, commands) do
     outcome
-    |> Map.put("events", Enum.map(events, &Map.get(&1, "id")))
-    |> Map.put("commands", Enum.map(commands, &Map.get(&1, "id")))
+    |> Map.put("events", Enum.map(events, &Map.get(&1, "_id")))
+    |> Map.put("commands", Enum.map(commands, &Map.get(&1, "_id")))
   end
 
   def route_commands(parent, {:fork, commands}), do: Veggy.Transaction.ForkAndJoin.start(parent, commands)
@@ -160,18 +160,18 @@ defmodule Veggy.Aggregate do
     aggregate
   end
 
-  defp received(%{"command" => _, "id" => id} = command),
-    do: %{"event" => "CommandReceived", "command_id" => id, "command" => command, "id" => Veggy.UUID.new}
+  defp received(%{"command" => _, "_id" => id} = command),
+    do: %{"event" => "CommandReceived", "command_id" => id, "command" => command, "_id" => Veggy.UUID.new}
 
-  defp succeeded(%{"id" => id}),
-    do: %{"event" => "CommandSucceeded", "command_id" => id, "id" => Veggy.UUID.new}
+  defp succeeded(%{"_id" => id}),
+    do: %{"event" => "CommandSucceeded", "command_id" => id, "_id" => Veggy.UUID.new}
 
-  defp splitted(%{"id" => id}),
-    do: %{"event" => "CommandHandedOver", "command_id" => id, "id" => Veggy.UUID.new}
+  defp splitted(%{"_id" => id}),
+    do: %{"event" => "CommandHandedOver", "command_id" => id, "_id" => Veggy.UUID.new}
 
-  defp failed(%{"id" => id}, reason),
-    do: %{"event" => "CommandFailed", "command_id" => id, "why" => reason, "id" => Veggy.UUID.new}
+  defp failed(%{"_id" => id}, reason),
+    do: %{"event" => "CommandFailed", "command_id" => id, "why" => reason, "_id" => Veggy.UUID.new}
 
-  defp rolledback(%{"id" => id}),
-    do: %{"event" => "CommandRolledBack", "command_id" => id, "id" => Veggy.UUID.new}
+  defp rolledback(%{"_id" => id}),
+    do: %{"event" => "CommandRolledBack", "command_id" => id, "_id" => Veggy.UUID.new}
 end
