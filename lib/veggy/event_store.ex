@@ -4,7 +4,7 @@ defmodule Veggy.EventStore do
   @collection "events"
 
   def start_link do
-    offset = offset_of_last_event
+    offset = offset_of_last_event + 1
     GenServer.start_link(__MODULE__, %{offset: offset, subscriptions: %{}}, name: __MODULE__)
   end
 
