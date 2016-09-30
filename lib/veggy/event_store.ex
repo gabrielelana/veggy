@@ -44,7 +44,7 @@ defmodule Veggy.EventStore do
 
   def handle_call({:fetch, query, filter, limit}, _from, state) do
     events =
-      Mongo.find(Veggy.MongoDB, @collection, query, sort: [offset: 1], limit: limit)
+      Mongo.find(Veggy.MongoDB, @collection, query, sort: %{"_offset" => 1}, limit: limit)
       |> Enum.to_list
       |> Enum.filter(filter)
     {:reply, events, state}
