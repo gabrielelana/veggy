@@ -4,6 +4,10 @@ defmodule Veggy.RoutesTest do
 
   import Plug.Conn
 
+  setup_all do
+    Mongo.run_command(Veggy.MongoDB, [dropDatabase: 1])
+  end
+
   test "command StartPomodoro" do
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroCompleted"}, &1))
 
