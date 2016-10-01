@@ -22,7 +22,7 @@ defmodule Veggy.Projection do
 
   def handle_info(:process, state) do
     # IO.inspect("Poll events from EventStore after offset #{state.offset}")
-    events = Veggy.EventStore.after_offset(state.offset, state.filter)
+    events = Veggy.EventStore.events_where({:offset_after, state.offset}, state.filter)
     # IO.inspect({:events, events})
     offset = Enum.reduce(events, state.offset, &process(state.module, &1, &2))
     Process.send_after(self, :process, @polling_interval)

@@ -22,9 +22,18 @@ defmodule Veggy.EventStore do
     GenServer.cast(__MODULE__, {:unsubscribe, reference})
   end
 
-  def after_offset(offset, filter \\ fn(_) -> true end, limit \\ 100) do
-    # TODO: maybe will be better to spawn a process that will send events as messages to the process that requested them
+  def events_where(query, filter \\ fn(_) -> true end, limit \\ 100)
+  def events_where({:offset_after, offset}, filter, limit) do
     GenServer.call(__MODULE__, {:fetch, %{"_offset" => %{"$gt" => offset}}, filter, limit})
+  end
+  def events_where({:received_after, from}, filter, limit) do
+    from = Veggy.MongoDB.DateTime.from_datetime(from)
+    GenServer.call(__MODULE__, {:fetch, %{"_received_at" => %{"$gt" => from}}, filter, limit})
+  end
+  def events_where({:received_between, from, to}, filter, limit) do
+    from = Veggy.MongoDB.DateTime.from_datetime(from)
+    to = Veggy.MongoDB.DateTime.from_datetime(to)
+    GenServer.call(__MODULE__, {:fetch, %{"_received_at" => %{"$gt" => from, "$lt" => to}}, filter, limit})
   end
 
 
