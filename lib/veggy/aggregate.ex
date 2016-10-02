@@ -4,12 +4,7 @@ defmodule Veggy.Aggregate do
   # @type command :: Map.t
   # @type event :: Map.t
   # @type related_events :: event | [event]
-  # @type related_commands ::
-  #   command |
-  #   [command] |
-  #   {:forward, command} |
-  #   {:chain, [command]} |
-  #   {:fork, [command]}
+  # @type related_commands :: command | [command] | {:forward, command} | {:chain, [command]} | {:fork, [command]}
 
   # @callback route(request::any) ::
   #   {:ok, command} |
@@ -36,7 +31,7 @@ defmodule Veggy.Aggregate do
   #   {:error, reason::any}
 
   # @callback process(event, state::any) ::
-  #   state::any
+  #   state::any | {:error, reason}
 
   def start_link(id, module) do
     GenServer.start_link(__MODULE__, %{id: id, module: module, aggregate: nil})
