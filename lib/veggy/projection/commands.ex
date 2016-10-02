@@ -2,16 +2,16 @@ defmodule Veggy.Projection.Commands do
   use Veggy.MongoDB.Projection,
     collection: "projection.commands",
     events: &match?(%{"command_id" => _}, &1),
-    field: "command_id"
+    indexes: [%{"command_id" => 1}],
+    identity: "command_id"
 
-  # TODO: create index on command_id
 
-  def process(%{"event" => "CommandReceived"} = event, _) do
-    %{"command_id" => event["command_id"],
-      "command" => event["command"],
-      "received_at" => event["_received_at"],
-      "status" => "received",
-    }
+  def process(%{"event" => "CommandReceived"} = event, record) do
+    record
+    |> Map.put("command_id", event["command_id"])
+    |> Map.put("command", event["command"])
+    |> Map.put("received_at", event["_received_at"])
+    |> Map.put("status", "received")
   end
   def process(%{"event" => "CommandSucceeded"} = event, record) do
     received_at = Veggy.MongoDB.DateTime.to_datetime(record["received_at"])
@@ -65,5 +65,4 @@ defmodule Veggy.Projection.Commands do
   def query("command-status", %{"command_id" => command_id}) do
     find_one(%{"command_id" => Veggy.MongoDB.ObjectId.from_string(command_id)})
   end
-  def query(_, _), do: nil
 end

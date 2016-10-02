@@ -2,7 +2,7 @@ defmodule Veggy.Projection.LatestPomodori do
   use Veggy.MongoDB.Projection,
     collection: "projection.latest_pomodori",
     events: ["LoggedIn", "PomodoroStarted", "PomodoroSquashed", "PomodoroCompleted", "PomodoroVoided"],
-    field: "timer_id"
+    identity: "timer_id"
 
 
   def process(%{"event" => "LoggedIn"} = event, record) do
@@ -13,7 +13,7 @@ defmodule Veggy.Projection.LatestPomodori do
   end
   def process(%{"event" => "PomodoroStarted"} = event, record) do
     record
-    |> Map.put("started_at", event["received_at"])
+    |> Map.put("started_at", event["_received_at"])
     |> Map.put("duration", event["duration"])
     |> Map.put("status", "started")
     |> Map.delete("completed_at")
@@ -22,12 +22,12 @@ defmodule Veggy.Projection.LatestPomodori do
   end
   def process(%{"event" => "PomodoroCompleted"} = event, record) do
     record
-    |> Map.put("completed_at", event["received_at"])
+    |> Map.put("completed_at", event["_received_at"])
     |> Map.put("status", "completed")
   end
   def process(%{"event" => "PomodoroSquashed"} = event, record) do
     record
-    |> Map.put("squashed_at", event["received_at"])
+    |> Map.put("squashed_at", event["_received_at"])
     |> Map.put("status", "squashed")
   end
   def process(%{"event" => "PomodoroVoided"}, %{"_last" => %{"started_at" => _} = last}) do
@@ -45,5 +45,4 @@ defmodule Veggy.Projection.LatestPomodori do
   def query("latest-pomodori", _) do
     find(%{})
   end
-  def query(_, _), do: nil
 end

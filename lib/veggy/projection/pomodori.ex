@@ -2,17 +2,18 @@ defmodule Veggy.Projection.Pomodori do
   use Veggy.MongoDB.Projection,
     collection: "projection.pomodori",
     events: ["PomodoroStarted", "PomodoroSquashed", "PomodoroCompleted", "PomodoroVoided"],
-    field: "pomodoro_id"
+    identity: "pomodoro_id"
 
 
-  def process(%{"event" => "PomodoroStarted"} = event, %{}) do
-    %{"pomodoro_id" => event["pomodoro_id"],
-      "timer_id" => event["aggregate_id"],
-      "started_at" => event["_received_at"],
-      "tags" => Veggy.Task.extract_tags(event["description"]),
-      "shared_with" => event["shared_with"],
-      "status" => "started",
-      "duration" => event["duration"]}
+  def process(%{"event" => "PomodoroStarted"} = event, record) do
+    record
+    |> Map.put("pomodoro_id", event["pomodoro_id"])
+    |> Map.put("timer_id", event["aggregate_id"])
+    |> Map.put("started_at", event["_received_at"])
+    |> Map.put("tags", Veggy.Task.extract_tags(event["description"]))
+    |> Map.put("shared_with", event["shared_with"])
+    |> Map.put("status", "started")
+    |> Map.put("duration", event["duration"])
   end
   def process(%{"event" => "PomodoroCompleted"} = event, record) do
     record
@@ -50,6 +51,4 @@ defmodule Veggy.Projection.Pomodori do
         {:error, "day=#{parameters["day"]}: #{reason}"}
     end
   end
-
-  def query(_, _), do: nil
 end
