@@ -1,7 +1,8 @@
 defmodule Veggy.Projection.Pomodori do
   use Veggy.MongoDB.Projection,
     collection: "projection.pomodori",
-    events: ["PomodoroStarted", "PomodoroSquashed", "PomodoroCompleted", "PomodoroVoided"],
+    events: ["PomodoroStarted", "PomodoroSquashed", "PomodoroCompleted",
+             "PomodoroCompletedTracked", "PomodoroVoided"],
     identity: "pomodoro_id"
 
 
@@ -18,6 +19,17 @@ defmodule Veggy.Projection.Pomodori do
   def process(%{"event" => "PomodoroCompleted"} = event, record) do
     record
     |> Map.put("completed_at", event["_received_at"])
+    |> Map.put("status", "completed")
+  end
+  def process(%{"event" => "PomodoroCompletedTracked"} = event, record) do
+    record
+    |> Map.put("pomodoro_id", event["pomodoro_id"])
+    |> Map.put("timer_id", event["aggregate_id"])
+    |> Map.put("started_at", event["started_at"])
+    |> Map.put("tags", Veggy.Task.extract_tags(event["description"]))
+    |> Map.put("shared_with", [])
+    |> Map.put("duration", event["duration"])
+    |> Map.put("completed_at", event["completed_at"])
     |> Map.put("status", "completed")
   end
   def process(%{"event" => "PomodoroSquashed"} = event, record) do
