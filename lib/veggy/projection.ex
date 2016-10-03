@@ -77,7 +77,7 @@ defmodule Veggy.Projection do
     with {:ok, record_id} <- call(module, :identity, [event]),
          {:ok, record} <- call(module, :fetch, [record_id]) do
       case call(module, :process, [event, record]) do
-        :skip -> raise "unimplemented"
+        :skip -> :ok
         :delete -> call(module, :delete, [record, offset])
         {:hold, _expected} -> raise "unimplemented"
         {:error, _reason} -> raise "unimplemented"
