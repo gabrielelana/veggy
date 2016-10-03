@@ -43,6 +43,21 @@ defmodule Veggy.Aggregate.Timer do
             "reason" => Map.get(params, "reason", ""),
             "_id" => Veggy.UUID.new}}
   end
+  def route(%{"command" => "TrackPomodoroCompleted"} = params) do
+    with {:ok, started_at} <- Timex.parse(params["started_at"], "{RFC3339z}"),
+         {:ok, completed_at} <- Timex.parse(params["completed_at"], "{RFC3339z}") do
+      duration = Timex.diff(completed_at, started_at, :milliseconds)
+      {:ok, %{"command" => "TrackPomodoroCompleted",
+              "aggregate_id" => Veggy.MongoDB.ObjectId.from_string(params["timer_id"]),
+              "aggregate_module" => __MODULE__,
+              "duration" => duration,
+              "description" => Map.get(params, "description", ""),
+              "_id" => Veggy.UUID.new}}
+    else
+      _ ->
+        {:error, "Wrong time format"}
+    end
+  end
   def route(_), do: nil
 
   def init(id) do
@@ -105,6 +120,23 @@ defmodule Veggy.Aggregate.Timer do
     end)
     {:ok, [], commands}
   end
+  def handle(%{"command" => "TrackPomodoroCompleted"} = command, aggregate) do
+    # TODO: check that *it is* in the past
+    # TODO: check for collissions with other pomodori
+    {:ok, %{"event" => "PomodoroCompletedTracked",
+            "pomodoro_id" => Veggy.UUID.new,
+            "duration" => command["duration"],
+            "description" => command["description"],
+            "shared_with" => command["shared_with"],
+            "started_at" => command["started_at"],
+            "completed_at" => command["completed_at"],
+            "user_id" => aggregate["user_id"],
+            "command_id" => command["_id"],
+            "aggregate_id" => aggregate["id"],
+            "timer_id" => aggregate["id"],
+            "_id" => Veggy.UUID.new}}
+  end
+
 
   # "TODO" => ensure that the current pomodoro has been started by the same command we are rolling back
   def rollback(%{"command" => "StartPomodoro"}, %{"ticking" => false}), do: {:error, "Pomodoro is not ticking"}
@@ -122,18 +154,13 @@ defmodule Veggy.Aggregate.Timer do
 
   def process(%{"event" => "TimerCreated", "user_id" => user_id}, s),
     do: Map.put(s, "user_id", user_id)
-
   def process(%{"event" => "PomodoroStarted", "pomodoro_id" => pomodoro_id, "shared_with" => shared_with}, s),
     do: s |> Map.put("ticking", true) |> Map.put("pomodoro_id", pomodoro_id) |> Map.put("shared_with", shared_with)
-
   def process(%{"event" => "PomodoroSquashed"}, s),
     do: s |> Map.put("ticking", false) |> Map.delete("pomodoro_id") |> Map.delete("shared_with")
-
   def process(%{"event" => "PomodoroCompleted"}, s),
     do: s |> Map.put("ticking", false) |> Map.delete("pomodoro_id") |> Map.delete("shared_with")
-
   def process(%{"event" => "PomodoroVoided"}, s),
-    do: s |> Map.put("ticking", false) |> Map.delete("pomodoro_id") |> Map.delete("shared_with")
-
+      do: s |> Map.put("ticking", false) |> Map.delete("pomodoro_id") |> Map.delete("shared_with")
   def process(_, s), do: s
 end

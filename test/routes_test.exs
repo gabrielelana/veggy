@@ -68,6 +68,34 @@ defmodule Veggy.RoutesTest do
     assert_receive {:event, %{"event" => "LoggedIn", "command_id" => ^command_id, "timer_id" => _}}, 1000
   end
 
+  test "command TrackPomodoroCompleted" do
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroCompletedTracked"}, &1))
+
+    duration = 10
+    started_at = Timex.subtract(Timex.now, Timex.Duration.from_milliseconds(duration * 10))
+    completed_at = Timex.add(started_at, Timex.Duration.from_milliseconds(duration))
+
+    timer_id = Veggy.UUID.new
+    command = %{"command" => "TrackPomodoroCompleted",
+                "description" => "Implement TrackPomodoroCompleted command",
+                "timer_id" => to_string(timer_id),
+                "started_at" => Timex.format!(started_at, "{RFC3339z}"),
+                "completed_at" => Timex.format!(completed_at, "{RFC3339z}"),
+               }
+
+    # IO.inspect(command)
+    conn = conn(:post, "/commands", Poison.encode! command)
+    |> put_req_header("content-type", "application/json")
+    |> call
+    assert_command_received(conn)
+    assert_receive {:event, %{"event" => "PomodoroCompletedTracked", "aggregate_id" => ^timer_id}}
+  end
+
+  test "command TrackPomodoroCompleted when there's another pomodoro clashing"
+
+  test "command TrackPomodoroSquashed"
+  test "command TrackPomodoroSquashed when there's another pomodoro clashing"
+
   test "invalid command" do
     conn = conn(:post, "/commands", Poison.encode! %{"command" => "WhatCommandIsThis"})
     |> put_req_header("content-type", "application/json")
