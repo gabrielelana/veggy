@@ -37,7 +37,7 @@ defmodule Veggy.HTTP do
         conn
         |> put_resp_header("content-type", "application/json")
         |> send_resp(200, Poison.encode!(report))
-      {:error, :report_not_found} ->
+      {:error, reason} when reason in [:report_not_found, :record_not_found] ->
         conn
         |> send_resp(404, "")
       {:error, reason} ->

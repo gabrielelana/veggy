@@ -76,7 +76,7 @@ defmodule Veggy.MongoDB.Projection do
         # TODO: handle errors
         case Mongo.find(Veggy.MongoDB, @collection, query) |> Enum.to_list do
           [d] -> {:ok, d}
-          _ -> {:not_found, :record} # TODO: must be {:error, :record_not_found}
+          _ -> {:error, :record_not_found}
         end
       end
     end
