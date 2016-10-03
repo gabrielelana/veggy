@@ -67,7 +67,7 @@ defmodule Veggy.EventStore do
   end
 
   defp store(event) do
-    Mongo.save_one(Veggy.MongoDB, @collection, event)
+    Mongo.save_one(Veggy.MongoDB, @collection, Veggy.MongoDB.to_document(event))
     event
   end
 

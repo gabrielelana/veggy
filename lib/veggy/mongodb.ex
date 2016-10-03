@@ -31,6 +31,13 @@ defmodule Veggy.MongoDB do
     end
   end
 
+  def to_document(%{__struct__: _} = d), do: d
+  def to_document(%{} = d), do: d |> Enum.map(fn({k, v}) -> {k, encode(v)} end) |> Enum.into(%{})
+  defp encode(%Elixir.DateTime{} = v), do: DateTime.from_datetime(v)
+  defp encode(%{__struct__: _} = v), do: v
+  defp encode(%{} = v), do: to_document(v)
+  defp encode(v), do: v
+
   def collection_name(module_name) do
     module_name
     |> Module.split
