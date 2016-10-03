@@ -83,7 +83,6 @@ defmodule Veggy.RoutesTest do
                 "completed_at" => Timex.format!(completed_at, "{RFC3339z}"),
                }
 
-    # IO.inspect(command)
     conn = conn(:post, "/commands", Poison.encode! command)
     |> put_req_header("content-type", "application/json")
     |> call
