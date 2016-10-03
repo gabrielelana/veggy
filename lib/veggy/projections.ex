@@ -15,9 +15,13 @@ defmodule Veggy.Projections do
     GenServer.call(__MODULE__, {:query, projection_name, conn.params})
   end
 
-  def handle_call({:query, projection_name, parameters}, _from, %{modules: modules} = state) do
-    # TODO: catch function clause error
-    result = Enum.find_value(modules, {:not_found, :projection}, &(&1.query(projection_name, parameters)))
+  def handle_call({:query, report_name, parameters}, _from, %{modules: modules} = state) do
+    result = try do
+               Enum.find_value(modules, {:error, :report_not_found}, &(&1.query(report_name, parameters)))
+             rescue
+               FunctionClauseError ->
+                 {:error, :report_not_found}
+             end
     {:reply, result, state}
   end
 end
