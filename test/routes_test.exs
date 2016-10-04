@@ -71,8 +71,8 @@ defmodule Veggy.RoutesTest do
   test "command TrackPomodoroCompleted" do
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroCompletedTracked"}, &1))
 
-    duration = 10
-    started_at = Timex.subtract(Timex.now, Timex.Duration.from_milliseconds(duration * 10))
+    duration = 60000
+    started_at = Timex.add(Timex.now, Timex.Duration.from_hours(1) |> Timex.Duration.invert)
     completed_at = Timex.add(started_at, Timex.Duration.from_milliseconds(duration))
 
     timer_id = Veggy.UUID.new
@@ -94,11 +94,11 @@ defmodule Veggy.RoutesTest do
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroCompletedTracked"}, &1))
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "CommandFailed"}, &1))
 
-    duration = 10
+    duration = 60000
     timer_id = Veggy.UUID.new
-    beginning_at = Timex.subtract(Timex.now, Timex.Duration.from_milliseconds(duration * 10))
-    started_at = beginning_at
+    started_at = Timex.add(Timex.now, Timex.Duration.from_hours(1) |> Timex.Duration.invert)
     completed_at = Timex.add(started_at, Timex.Duration.from_milliseconds(duration))
+    beginning_at = started_at
 
     command = %{"command" => "TrackPomodoroCompleted",
                 "description" => "Implement TrackPomodoroCompleted command",
@@ -106,14 +106,13 @@ defmodule Veggy.RoutesTest do
                 "started_at" => Timex.format!(started_at, "{RFC3339z}"),
                 "completed_at" => Timex.format!(completed_at, "{RFC3339z}"),
                }
-
     conn = conn(:post, "/commands", Poison.encode! command)
     |> put_req_header("content-type", "application/json")
     |> call
     assert_command_received(conn)
     assert_receive {:event, %{"event" => "PomodoroCompletedTracked", "aggregate_id" => ^timer_id}}
 
-    started_at = Timex.add(beginning_at, Timex.Duration.from_milliseconds(trunc(duration / 2)))
+    started_at = Timex.add(beginning_at, Timex.Duration.from_milliseconds(duration / 2))
     completed_at = Timex.add(started_at, Timex.Duration.from_milliseconds(duration))
 
     command = %{"command" => "TrackPomodoroCompleted",
