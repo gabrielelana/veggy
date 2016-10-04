@@ -116,7 +116,8 @@ defmodule Veggy.Aggregate.Timer do
     {:ok, [], commands}
   end
   def handle(%{"command" => "TrackPomodoroCompleted"} = command, aggregate) do
-    # TODO: ensure_completed_before(Timex.now)
+    ensure_ended_before(command, Timex.now)
+
     events = Veggy.Projection.events_where(Veggy.Projection.Pomodori, {:aggregate_id, aggregate["id"]})
     pomodori = Veggy.Projection.process(Veggy.Projection.Pomodori, events)
 
@@ -177,4 +178,7 @@ defmodule Veggy.Aggregate.Timer do
     |> Enum.map(fn(p) -> {p["started_at"], p["ended_at"]} end)
     |> Enum.all?(fn({t1, t2}) -> ended_at < to_datetime(t1) || started_at > to_datetime(t2) end)
   end
+
+  defp ensure_ended_before(%{"completed_at" => completed_at}, t), do: completed_at < t
+  defp ensure_ended_before(%{"squashed_at" => squashed_at}, t), do: squashed_at < t
 end
