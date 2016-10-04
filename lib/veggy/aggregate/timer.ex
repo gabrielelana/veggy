@@ -116,25 +116,32 @@ defmodule Veggy.Aggregate.Timer do
     {:ok, [], commands}
   end
   def handle(%{"command" => "TrackPomodoroCompleted"} = command, aggregate) do
-    ensure_ended_before(command, Timex.now)
+    handle_track(command, "completed_at", "PomodoroCompletedTracked", aggregate)
+  end
 
-    events = Veggy.Projection.events_where(Veggy.Projection.Pomodori, {:aggregate_id, aggregate["id"]})
-    pomodori = Veggy.Projection.process(Veggy.Projection.Pomodori, events)
+  defp handle_track(command, ended_field, event_name, aggregate) do
+    if ended_before?(command, ended_field, Timex.now) do
 
-    if compatible?(pomodori, command["started_at"], command["completed_at"]) do
-      {:ok, %{"event" => "PomodoroCompletedTracked",
-              "pomodoro_id" => Veggy.UUID.new,
-              "duration" => command["duration"],
-              "description" => command["description"],
-              "started_at" => command["started_at"],
-              "completed_at" => command["completed_at"],
-              "user_id" => aggregate["user_id"],
-              "command_id" => command["_id"],
-              "aggregate_id" => aggregate["id"],
-              "timer_id" => aggregate["id"],
-              "_id" => Veggy.UUID.new}}
+      events = Veggy.Projection.events_where(Veggy.Projection.Pomodori, {:aggregate_id, aggregate["id"]})
+      pomodori = Veggy.Projection.process(Veggy.Projection.Pomodori, events)
+
+      if compatible?(pomodori, command["started_at"], command[ended_field]) do
+        {:ok, %{"event" => event_name,
+                "pomodoro_id" => Veggy.UUID.new,
+                "duration" => command["duration"],
+                "description" => command["description"],
+                "started_at" => command["started_at"],
+                ended_field => command[ended_field],
+                "user_id" => aggregate["user_id"],
+                "command_id" => command["_id"],
+                "aggregate_id" => aggregate["id"],
+                "timer_id" => aggregate["id"],
+                "_id" => Veggy.UUID.new}}
+      else
+        {:error, "Another pomodoro was ticking between #{command["started_at"]} and #{command[ended_field]}"}
+      end
     else
-      {:error, "Another pomodoro was ticking at #{command["started_at"]}"}
+      {:error, "Seems like you want to track a pomodoro that is not in the past... :-/"}
     end
   end
 
@@ -169,6 +176,7 @@ defmodule Veggy.Aggregate.Timer do
   def compatible?(pomodori, started_at, ended_at) do
     import Map, only: [put: 3, has_key?: 2]
     import Veggy.MongoDB.DateTime, only: [to_datetime: 1]
+    import Timex, only: [after?: 2, before?: 2]
     pomodori
     |> Enum.map(fn
       (%{"completed_at" => t} = p) -> put(p, "ended_at", t)
@@ -176,9 +184,8 @@ defmodule Veggy.Aggregate.Timer do
     end)
     |> Enum.filter(fn(p) -> has_key?(p, "started_at") && has_key?(p, "ended_at") end)
     |> Enum.map(fn(p) -> {p["started_at"], p["ended_at"]} end)
-    |> Enum.all?(fn({t1, t2}) -> ended_at < to_datetime(t1) || started_at > to_datetime(t2) end)
+    |> Enum.all?(fn({t1, t2}) -> after?(started_at, to_datetime(t2)) || before?(ended_at, to_datetime(t1)) end)
   end
 
-  defp ensure_ended_before(%{"completed_at" => completed_at}, t), do: completed_at < t
-  defp ensure_ended_before(%{"squashed_at" => squashed_at}, t), do: squashed_at < t
+  defp ended_before?(command, ended_field, t), do: Timex.before?(command[ended_field], t)
 end
