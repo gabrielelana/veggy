@@ -26,6 +26,13 @@ defmodule Veggy.Projection do
   # defcallback process(event, record) ::
   #   record | {:hold, expected :: event_filter} | :skip | :delete | error
 
+
+  @spec events_where(module, where_clause :: {key :: atom, value :: any}, limit :: non_neg_integer) :: [Map.t]
+  def events_where(module, where_clause, limit \\ 0) do
+    {:ok, _, events} = module.init
+    Veggy.EventStore.events_where(where_clause, to_filter(events), limit)
+  end
+
   @spec process(module, [Map.t]) :: [Map.t]
   def process(module, events) do
     # TODO: check that module implements the Projection behaviour or at least process/2

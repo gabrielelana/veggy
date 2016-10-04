@@ -116,21 +116,26 @@ defmodule Veggy.Aggregate.Timer do
     {:ok, [], commands}
   end
   def handle(%{"command" => "TrackPomodoroCompleted"} = command, aggregate) do
-    # TODO: check that *it is* in the past
-    # TODO: check for collissions with other pomodori
-    {:ok, %{"event" => "PomodoroCompletedTracked",
-            "pomodoro_id" => Veggy.UUID.new,
-            "duration" => command["duration"],
-            "description" => command["description"],
-            "started_at" => command["started_at"],
-            "completed_at" => command["completed_at"],
-            "user_id" => aggregate["user_id"],
-            "command_id" => command["_id"],
-            "aggregate_id" => aggregate["id"],
-            "timer_id" => aggregate["id"],
-            "_id" => Veggy.UUID.new}}
-  end
+    # TODO: ensure_completed_before(Timex.now)
+    events = Veggy.Projection.events_where(Veggy.Projection.Pomodori, {:aggregate_id, aggregate["id"]})
+    pomodori = Veggy.Projection.process(Veggy.Projection.Pomodori, events)
 
+    if compatible?(pomodori, command["started_at"], command["completed_at"]) do
+      {:ok, %{"event" => "PomodoroCompletedTracked",
+              "pomodoro_id" => Veggy.UUID.new,
+              "duration" => command["duration"],
+              "description" => command["description"],
+              "started_at" => command["started_at"],
+              "completed_at" => command["completed_at"],
+              "user_id" => aggregate["user_id"],
+              "command_id" => command["_id"],
+              "aggregate_id" => aggregate["id"],
+              "timer_id" => aggregate["id"],
+              "_id" => Veggy.UUID.new}}
+    else
+      {:error, "Another pomodoro was ticking at #{command["started_at"]}"}
+    end
+  end
 
   # "TODO" => ensure that the current pomodoro has been started by the same command we are rolling back
   def rollback(%{"command" => "StartPomodoro"}, %{"ticking" => false}), do: {:error, "Pomodoro is not ticking"}
@@ -157,4 +162,19 @@ defmodule Veggy.Aggregate.Timer do
   def process(%{"event" => "PomodoroVoided"}, s),
       do: s |> Map.put("ticking", false) |> Map.delete("pomodoro_id") |> Map.delete("shared_with")
   def process(_, s), do: s
+
+
+  # TODO: defpt previous `require Testable`
+  def compatible?(pomodori, started_at, ended_at) do
+    import Map, only: [put: 3, has_key?: 2]
+    import Veggy.MongoDB.DateTime, only: [to_datetime: 1]
+    pomodori
+    |> Enum.map(fn
+      (%{"completed_at" => t} = p) -> put(p, "ended_at", t)
+      (%{"squashed_at" => t} = p) -> put(p, "ended_at", t)
+    end)
+    |> Enum.filter(fn(p) -> has_key?(p, "started_at") && has_key?(p, "ended_at") end)
+    |> Enum.map(fn(p) -> {p["started_at"], p["ended_at"]} end)
+    |> Enum.all?(fn({t1, t2}) -> ended_at < to_datetime(t1) || started_at > to_datetime(t2) end)
+  end
 end

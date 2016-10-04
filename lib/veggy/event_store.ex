@@ -35,6 +35,9 @@ defmodule Veggy.EventStore do
     to = Veggy.MongoDB.DateTime.from_datetime(to)
     GenServer.call(__MODULE__, {:fetch, %{"_received_at" => %{"$gt" => from, "$lt" => to}}, filter, limit})
   end
+  def events_where({:aggregate_id, aggregate_id}, filter, limit) do
+    GenServer.call(__MODULE__, {:fetch, %{"aggregate_id" => aggregate_id}, filter, limit})
+  end
 
 
   def handle_cast({:event, event}, %{subscriptions: subscriptions, offset: offset} = state) do

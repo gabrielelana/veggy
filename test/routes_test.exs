@@ -90,7 +90,45 @@ defmodule Veggy.RoutesTest do
     assert_receive {:event, %{"event" => "PomodoroCompletedTracked", "aggregate_id" => ^timer_id}}
   end
 
-  test "command TrackPomodoroCompleted when there's another pomodoro clashing"
+  test "command TrackPomodoroCompleted when there's another pomodoro clashing" do
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroCompletedTracked"}, &1))
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "CommandFailed"}, &1))
+
+    duration = 10
+    timer_id = Veggy.UUID.new
+    beginning_at = Timex.subtract(Timex.now, Timex.Duration.from_milliseconds(duration * 10))
+    started_at = beginning_at
+    completed_at = Timex.add(started_at, Timex.Duration.from_milliseconds(duration))
+
+    command = %{"command" => "TrackPomodoroCompleted",
+                "description" => "Implement TrackPomodoroCompleted command",
+                "timer_id" => to_string(timer_id),
+                "started_at" => Timex.format!(started_at, "{RFC3339z}"),
+                "completed_at" => Timex.format!(completed_at, "{RFC3339z}"),
+               }
+
+    conn = conn(:post, "/commands", Poison.encode! command)
+    |> put_req_header("content-type", "application/json")
+    |> call
+    assert_command_received(conn)
+    assert_receive {:event, %{"event" => "PomodoroCompletedTracked", "aggregate_id" => ^timer_id}}
+
+    started_at = Timex.add(beginning_at, Timex.Duration.from_milliseconds(trunc(duration / 2)))
+    completed_at = Timex.add(started_at, Timex.Duration.from_milliseconds(duration))
+
+    command = %{"command" => "TrackPomodoroCompleted",
+                "description" => "Implement TrackPomodoroCompleted command",
+                "timer_id" => to_string(timer_id),
+                "started_at" => Timex.format!(started_at, "{RFC3339z}"),
+                "completed_at" => Timex.format!(completed_at, "{RFC3339z}"),
+               }
+    conn = conn(:post, "/commands", Poison.encode! command)
+    |> put_req_header("content-type", "application/json")
+    |> call
+    command_id = assert_command_received(conn) |> Veggy.MongoDB.ObjectId.from_string
+    refute_receive {:event, %{"event" => "PomodoroCompletedTracked", "aggregate_id" => ^timer_id}}
+    assert_receive {:event, %{"event" => "CommandFailed", "command_id" => ^command_id}}
+  end
 
   test "command TrackPomodoroSquashed"
   test "command TrackPomodoroSquashed when there's another pomodoro clashing"
