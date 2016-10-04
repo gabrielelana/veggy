@@ -37,14 +37,22 @@ defmodule Veggy.Aggregate.Timer do
             "_id" => Veggy.UUID.new}}
   end
   def route(%{"command" => "TrackPomodoroCompleted"} = params) do
+    route_tracked(params, "completed_at")
+  end
+  def route(%{"command" => "TrackPomodoroSquashed"} = params) do
+    route_tracked(params, "squashed_at")
+  end
+  def route(_), do: nil
+
+  defp route_tracked(params, ended_field) do
     with {:ok, started_at} <- Timex.parse(params["started_at"], "{RFC3339z}"),
-         {:ok, completed_at} <- Timex.parse(params["completed_at"], "{RFC3339z}") do
-      duration = Timex.diff(completed_at, started_at, :milliseconds)
-      {:ok, %{"command" => "TrackPomodoroCompleted",
+         {:ok, ended_at} <- Timex.parse(params[ended_field], "{RFC3339z}") do
+      duration = Timex.diff(ended_at, started_at, :milliseconds)
+      {:ok, %{"command" => params["command"],
               "aggregate_id" => Veggy.MongoDB.ObjectId.from_string(params["timer_id"]),
               "aggregate_module" => __MODULE__,
               "started_at" => started_at,
-              "completed_at" => completed_at,
+              ended_field => ended_at,
               "duration" => duration,
               "description" => Map.get(params, "description", ""),
               "_id" => Veggy.UUID.new}}
@@ -53,7 +61,6 @@ defmodule Veggy.Aggregate.Timer do
         {:error, "Wrong time format"}
     end
   end
-  def route(_), do: nil
 
   def init(id) do
     Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroCompleted", "aggregate_id" => ^id}, &1))
@@ -117,6 +124,9 @@ defmodule Veggy.Aggregate.Timer do
   end
   def handle(%{"command" => "TrackPomodoroCompleted"} = command, aggregate) do
     handle_track(command, "completed_at", "PomodoroCompletedTracked", aggregate)
+  end
+  def handle(%{"command" => "TrackPomodoroSquashed"} = command, aggregate) do
+    handle_track(command, "squashed_at", "PomodoroSquashedTracked", aggregate)
   end
 
   defp handle_track(command, ended_field, event_name, aggregate) do

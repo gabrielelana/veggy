@@ -129,8 +129,66 @@ defmodule Veggy.RoutesTest do
     assert_receive {:event, %{"event" => "CommandFailed", "command_id" => ^command_id}}
   end
 
-  test "command TrackPomodoroSquashed"
-  test "command TrackPomodoroSquashed when there's another pomodoro clashing"
+  test "command TrackPomodoroSquashed" do
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroSquashedTracked"}, &1))
+
+    duration = 60000
+    started_at = Timex.add(Timex.now, Timex.Duration.from_hours(1) |> Timex.Duration.invert)
+    squashed_at = Timex.add(started_at, Timex.Duration.from_milliseconds(duration))
+
+    timer_id = Veggy.UUID.new
+    command = %{"command" => "TrackPomodoroSquashed",
+                "description" => "Implement TrackPomodoroSquashed command",
+                "timer_id" => to_string(timer_id),
+                "started_at" => Timex.format!(started_at, "{RFC3339z}"),
+                "squashed_at" => Timex.format!(squashed_at, "{RFC3339z}"),
+               }
+
+    conn = conn(:post, "/commands", Poison.encode! command)
+    |> put_req_header("content-type", "application/json")
+    |> call
+    assert_command_received(conn)
+    assert_receive {:event, %{"event" => "PomodoroSquashedTracked", "aggregate_id" => ^timer_id}}
+  end
+
+  test "command TrackPomodoroSquashed when there's another pomodoro clashing" do
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroSquashedTracked"}, &1))
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => "CommandFailed"}, &1))
+
+    duration = 60000
+    timer_id = Veggy.UUID.new
+    started_at = Timex.add(Timex.now, Timex.Duration.from_hours(1) |> Timex.Duration.invert)
+    squashed_at = Timex.add(started_at, Timex.Duration.from_milliseconds(duration))
+    beginning_at = started_at
+
+    command = %{"command" => "TrackPomodoroSquashed",
+                "description" => "Implement TrackPomodoroSquashed command",
+                "timer_id" => to_string(timer_id),
+                "started_at" => Timex.format!(started_at, "{RFC3339z}"),
+                "squashed_at" => Timex.format!(squashed_at, "{RFC3339z}"),
+               }
+    conn = conn(:post, "/commands", Poison.encode! command)
+    |> put_req_header("content-type", "application/json")
+    |> call
+    assert_command_received(conn)
+    assert_receive {:event, %{"event" => "PomodoroSquashedTracked", "aggregate_id" => ^timer_id}}
+
+    started_at = Timex.add(beginning_at, Timex.Duration.from_milliseconds(duration / 2))
+    squashed_at = Timex.add(started_at, Timex.Duration.from_milliseconds(duration))
+
+    command = %{"command" => "TrackPomodoroSquashed",
+                "description" => "Implement TrackPomodoroSquashed command",
+                "timer_id" => to_string(timer_id),
+                "started_at" => Timex.format!(started_at, "{RFC3339z}"),
+                "squashed_at" => Timex.format!(squashed_at, "{RFC3339z}"),
+               }
+    conn = conn(:post, "/commands", Poison.encode! command)
+    |> put_req_header("content-type", "application/json")
+    |> call
+    command_id = assert_command_received(conn) |> Veggy.MongoDB.ObjectId.from_string
+    refute_receive {:event, %{"event" => "PomodoroSquashedTracked", "aggregate_id" => ^timer_id}}
+    assert_receive {:event, %{"event" => "CommandFailed", "command_id" => ^command_id}}
+  end
 
   test "invalid command" do
     conn = conn(:post, "/commands", Poison.encode! %{"command" => "WhatCommandIsThis"})

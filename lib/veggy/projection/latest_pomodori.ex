@@ -47,6 +47,17 @@ defmodule Veggy.Projection.LatestPomodori do
     |> Map.put("status", "completed")
     |> Map.delete("squashed_at")
   end
+  def process(%{"event" => "PomodoroSquashedTracked", "started_at" => s1}, %{"started_at" => s2}) when s1 < s2 do
+    :skip
+  end
+  def process(%{"event" => "PomodoroSquashedTracked"} = event, record) do
+    record
+    |> Map.put("started_at", event["started_at"])
+    |> Map.put("squashed_at", event["squashed_at"])
+    |> Map.put("duration", event["duration"])
+    |> Map.put("status", "squashed")
+    |> Map.delete("completed_at")
+  end
 
 
   def query("latest-pomodoro", %{"timer_id" => timer_id}) do
