@@ -3,6 +3,7 @@ defmodule Veggy.Aggregate.Timer do
 
   # @behaviour Veggy.Aggregate || use Veggy.Aggregate
   use Veggy.MongoDB.Aggregate, collection: "aggregate.timers"
+  use Testable
 
   def route(%{"command" => "StartPomodoro"} = params) do
     {:ok, %{"command" => "StartPomodoro",
@@ -181,8 +182,7 @@ defmodule Veggy.Aggregate.Timer do
   def process(_, s), do: s
 
 
-  # TODO: defpt previous `require Testable`
-  def compatible?(pomodori, started_at, ended_at) do
+  defpt compatible?(pomodori, started_at, ended_at) do
     import Map, only: [put: 3, has_key?: 2]
     import Timex, only: [after?: 2, before?: 2]
     pomodori
