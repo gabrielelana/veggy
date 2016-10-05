@@ -23,7 +23,15 @@ defmodule Veggy.Aggregates do
   end
 
   def handle_call({:route, request}, _from, %{modules: modules} = state) do
-    command = Enum.find_value(modules, {:error, :unknown_command}, &(&1.route(request)))
+    command = Enum.find_value(modules, {:error, :unknown_command},
+      fn(module) ->
+        try do
+          module.route(request)
+        rescue
+          FunctionClauseError ->
+            nil
+        end
+      end)
     {:reply, command, state}
   end
 

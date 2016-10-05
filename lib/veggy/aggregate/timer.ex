@@ -1,7 +1,7 @@
 defmodule Veggy.Aggregate.Timer do
   @default_duration 1_500_000   # 25 minutes in milliseconds
 
-  # @behaviour Veggy.Aggregate
+  # @behaviour Veggy.Aggregate || use Veggy.Aggregate
   use Veggy.MongoDB.Aggregate, collection: "aggregate.timers"
 
   def route(%{"command" => "StartPomodoro"} = params) do
@@ -42,7 +42,6 @@ defmodule Veggy.Aggregate.Timer do
   def route(%{"command" => "TrackPomodoroSquashed"} = params) do
     route_tracked(params, "squashed_at")
   end
-  def route(_), do: nil
 
   defp route_tracked(params, ended_field) do
     with {:ok, started_at} <- Timex.parse(params["started_at"], "{RFC3339z}"),

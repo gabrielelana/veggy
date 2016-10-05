@@ -1,6 +1,5 @@
 defmodule Veggy.Aggregate.User do
-  # @behaviour Veggy.Aggregate
-  # use Veggy.Aggregate
+  # @behaviour Veggy.Aggregate || use Veggy.Aggregate
   use Veggy.MongoDB.Aggregate, collection: "aggregate.users"
 
   def route(%{"command" => "Login", "username" => username} = params) do
@@ -10,7 +9,6 @@ defmodule Veggy.Aggregate.User do
             "aggregate_module" => __MODULE__,
             "_id" => Veggy.UUID.new}}
   end
-  def route(_), do: nil
 
   def init(id) do
     %{"id" => id, "timer_id" => Veggy.UUID.new}
