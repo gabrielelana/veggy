@@ -16,12 +16,15 @@ defmodule Veggy.Projections do
   end
 
   def handle_call({:query, report_name, parameters}, _from, %{modules: modules} = state) do
-    result = try do
-               Enum.find_value(modules, {:error, :report_not_found}, &(&1.query(report_name, parameters)))
-             rescue
-               FunctionClauseError ->
-                 {:error, :report_not_found}
-             end
+    result = Enum.find_value(modules, {:error, :report_not_found},
+      fn(module) ->
+        try do
+          module.query(report_name, parameters)
+        rescue
+          FunctionClauseError ->
+            nil
+        end
+      end)
     {:reply, result, state}
   end
 end
