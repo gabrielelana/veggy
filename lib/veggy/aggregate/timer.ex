@@ -185,7 +185,6 @@ defmodule Veggy.Aggregate.Timer do
   # TODO: defpt previous `require Testable`
   def compatible?(pomodori, started_at, ended_at) do
     import Map, only: [put: 3, has_key?: 2]
-    import Veggy.MongoDB.DateTime, only: [to_datetime: 1]
     import Timex, only: [after?: 2, before?: 2]
     pomodori
     |> Enum.map(fn
@@ -194,7 +193,7 @@ defmodule Veggy.Aggregate.Timer do
     end)
     |> Enum.filter(fn(p) -> has_key?(p, "started_at") && has_key?(p, "ended_at") end)
     |> Enum.map(fn(p) -> {p["started_at"], p["ended_at"]} end)
-    |> Enum.all?(fn({t1, t2}) -> after?(started_at, to_datetime(t2)) || before?(ended_at, to_datetime(t1)) end)
+    |> Enum.all?(fn({t1, t2}) -> after?(started_at, t2) || before?(ended_at, t1) end)
   end
 
   defp ended_before?(command, ended_field, t), do: Timex.before?(command[ended_field], t)

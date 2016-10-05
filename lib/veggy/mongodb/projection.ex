@@ -50,13 +50,14 @@ defmodule Veggy.MongoDB.Projection do
         # TODO: use internal find and handle errors
         case Mongo.find(Veggy.MongoDB, @collection, %{"_id" => record_id}) |> Enum.to_list do
           [] -> {:ok, Map.put(@default, "_id", record_id)}
-          [d] -> {:ok, d}
+          [d] -> {:ok, Veggy.MongoDB.from_document(d)}
         end
       end
 
       def store(record, offset) do
         # TODO: handle errors
-        Mongo.save_one(Veggy.MongoDB, @collection, record |> Map.put("_offset", offset))
+        Mongo.save_one(Veggy.MongoDB, @collection,
+          record |> Map.put("_offset", offset) |> Veggy.MongoDB.to_document)
       end
 
       def delete(record, offset) do

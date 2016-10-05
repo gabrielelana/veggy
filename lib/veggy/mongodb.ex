@@ -38,6 +38,14 @@ defmodule Veggy.MongoDB do
   defp encode(%{} = v), do: to_document(v)
   defp encode(v), do: v
 
+  def from_document(%{__struct__: _} = d), do: d
+  def from_document(%{} = d), do: d |> Enum.map(fn({k, v}) -> {k, decode(v)} end) |> Enum.into(%{})
+  defp decode(%BSON.DateTime{} = v), do: DateTime.to_datetime(v)
+  defp decode(%{__struct__: _} = v), do: v
+  defp decode(%{} = v), do: from_document(v)
+  defp decode(v), do: v
+
+
   def collection_name(module_name) do
     module_name
     |> Module.split

@@ -11,13 +11,13 @@ defmodule Veggy.MongoDB.Aggregate do
 
       def fetch(id, initial) do
         case Mongo.find(Veggy.MongoDB, @collection, %{"_id" => id}) |> Enum.to_list do
-          [d] -> d |> Map.put("id", d["_id"]) |> Map.delete("_id")
+          [d] -> d |> Map.put("id", d["_id"]) |> Map.delete("_id") |> Veggy.MongoDB.from_document
           _ -> initial
         end
       end
 
       def store(aggregate) do
-        aggregate = aggregate |> Map.put("_id", aggregate["id"]) |> Map.delete("id")
+        aggregate = aggregate |> Map.put("_id", aggregate["id"]) |> Map.delete("id") |> Veggy.MongoDB.to_document
         {:ok, _} = Mongo.save_one(Veggy.MongoDB, @collection, aggregate)
       end
 

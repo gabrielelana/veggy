@@ -59,6 +59,7 @@ defmodule Veggy.EventStore do
       Mongo.find(Veggy.MongoDB, @collection, query, sort: %{"_offset" => 1}, limit: limit)
       |> Enum.to_list
       |> Enum.filter(filter)
+      |> Enum.map(&Veggy.MongoDB.from_document/1)
     {:reply, events, state}
   end
 

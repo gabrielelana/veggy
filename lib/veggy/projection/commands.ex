@@ -14,8 +14,8 @@ defmodule Veggy.Projection.Commands do
     |> Map.put("status", "received")
   end
   def process(%{"event" => "CommandSucceeded"} = event, record) do
-    received_at = Veggy.MongoDB.DateTime.to_datetime(record["received_at"])
-    succeeded_at = Veggy.MongoDB.DateTime.to_datetime(event["_received_at"])
+    received_at = record["received_at"]
+    succeeded_at = event["_received_at"]
     elapsed = Timex.diff(succeeded_at, received_at, :milliseconds)
     record
     |> Map.put("status", "succeeded")
@@ -25,8 +25,8 @@ defmodule Veggy.Projection.Commands do
     |> Map.put("elapsed", elapsed)
   end
   def process(%{"event" => "CommandFailed"} = event, record) do
-    received_at = Veggy.MongoDB.DateTime.to_datetime(record["received_at"])
-    failed_at = Veggy.MongoDB.DateTime.to_datetime(event["_received_at"])
+    received_at = record["received_at"]
+    failed_at = event["_received_at"]
     elapsed = Timex.diff(failed_at, received_at, :milliseconds)
     record
     |> Map.put("status", "failed")
@@ -43,8 +43,8 @@ defmodule Veggy.Projection.Commands do
     |> Map.put("events", Enum.concat(Map.get(record, "events", []), Map.get(event, "events", [])))
   end
   def process(%{"event" => "CommandRolledBack"} = event, record) do
-    received_at = Veggy.MongoDB.DateTime.to_datetime(record["received_at"])
-    rolledback_at = Veggy.MongoDB.DateTime.to_datetime(event["_received_at"])
+    received_at = record["received_at"]
+    rolledback_at = event["_received_at"]
     elapsed = Timex.diff(rolledback_at, received_at, :milliseconds)
     record
     |> Map.put("status", "rolledback")

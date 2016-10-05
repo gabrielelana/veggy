@@ -21,12 +21,12 @@ defmodule Veggy.CommandsProjectionTest do
     succeeded_at = Timex.add(received_at, Timex.Duration.from_milliseconds(10))
     command = %{"command" => "DoSomething", "id" => 1}
     event = %{"event" => "CommandSucceeded",
-              "_received_at" => Veggy.MongoDB.DateTime.from_datetime(succeeded_at),
+              "_received_at" => succeeded_at,
               "command_id" => command["id"],
               "commands" => [2,3],
               "events" => [4],
              }
-    record = %{"received_at" => Veggy.MongoDB.DateTime.from_datetime(received_at)}
+    record = %{"received_at" => received_at}
     record = Veggy.Projection.Commands.process(event, record)
 
     assert record["status"] == "succeeded"
@@ -41,12 +41,12 @@ defmodule Veggy.CommandsProjectionTest do
     failed_at = Timex.add(received_at, Timex.Duration.from_milliseconds(10))
     command = %{"command" => "DoSomething", "id" => 1}
     event = %{"event" => "CommandFailed",
-              "_received_at" => Veggy.MongoDB.DateTime.from_datetime(failed_at),
+              "_received_at" => failed_at,
               "command_id" => command["id"],
               "commands" => [],
               "events" => [2],
              }
-    record = %{"received_at" => Veggy.MongoDB.DateTime.from_datetime(received_at)}
+    record = %{"received_at" => received_at}
     record = Veggy.Projection.Commands.process(event, record)
 
     assert record["status"] == "failed"
@@ -59,7 +59,7 @@ defmodule Veggy.CommandsProjectionTest do
   test "process CommandHandedOver" do
     command = %{"command" => "DoSomething", "id" => 1}
     event = %{"event" => "CommandHandedOver",
-              "_received_at" => Veggy.MongoDB.DateTime.from_datetime(Timex.now),
+              "_received_at" => Timex.now,
               "command_id" => command["id"],
               "commands" => [2],
               "events" => [3],
@@ -76,13 +76,13 @@ defmodule Veggy.CommandsProjectionTest do
     rolledback_at = Timex.add(received_at, Timex.Duration.from_milliseconds(10))
     command = %{"command" => "DoSomething", "id" => 1}
     event = %{"event" => "CommandRolledBack",
-              "_received_at" => Veggy.MongoDB.DateTime.from_datetime(rolledback_at),
+              "_received_at" => rolledback_at,
               "command_id" => command["id"],
               "commands" => [4],
               "events" => [5],
              }
     record = %{"status" => "succeeded",
-               "received_at" => Veggy.MongoDB.DateTime.from_datetime(received_at),
+               "received_at" => received_at,
                "commands" => [2],
                "events" => [3]}
     record = Veggy.Projection.Commands.process(event, record)
