@@ -11,8 +11,8 @@ defmodule Veggy.MongoDB.Aggregate do
 
       def fetch(id, initial) do
         case Mongo.find(Veggy.MongoDB, @collection, %{"_id" => id}) |> Enum.to_list do
-          [d] -> d |> Map.put("id", d["_id"]) |> Map.delete("_id") |> Veggy.MongoDB.from_document
-          _ -> initial
+          [d] -> {:ok, d |> Map.put("id", d["_id"]) |> Map.delete("_id") |> Veggy.MongoDB.from_document}
+          _ -> {:ok, initial}
         end
       end
 

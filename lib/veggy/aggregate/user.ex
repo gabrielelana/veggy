@@ -2,6 +2,7 @@ defmodule Veggy.Aggregate.User do
   # @behaviour Veggy.Aggregate || use Veggy.Aggregate
   use Veggy.MongoDB.Aggregate, collection: "aggregate.users"
 
+
   def route(%{"command" => "Login", "username" => username} = params) do
     {:ok, %{"command" => params["command"],
             "username" => username,
@@ -10,9 +11,11 @@ defmodule Veggy.Aggregate.User do
             "_id" => Veggy.UUID.new}}
   end
 
+
   def init(id) do
-    %{"id" => id, "timer_id" => Veggy.UUID.new}
+    {:ok, %{"id" => id, "timer_id" => Veggy.UUID.new}}
   end
+
 
   def handle(%{"command" => "Login"} = command, aggregate) do
     event = %{"event" => "LoggedIn",
@@ -30,9 +33,9 @@ defmodule Veggy.Aggregate.User do
     {:ok, [event], [command]}
   end
 
+
   def process(%{"event" => "LoggedIn", "username" => username}, aggregate),
     do: Map.put(aggregate, "username", username)
-
   def process(_event, aggregate),
     do: aggregate
 end

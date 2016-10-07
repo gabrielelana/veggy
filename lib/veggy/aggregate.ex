@@ -3,35 +3,37 @@ defmodule Veggy.Aggregate do
 
   # @type command :: Map.t
   # @type event :: Map.t
-  # @type related_events :: event | [event]
-  # @type related_commands :: command | [command] | {:forward, command} | {:chain, [command]} | {:fork, [command]}
+  # @type events :: event | [event]
+  # @type commands :: command | [command] | {:forward, command} | {:chain, [command]} | {:fork, [command]}
+  # @type error :: {:error, reason::any}
 
-  # @callback route(request::any) ::
-  #   {:ok, command} |
-  #   {:error, reason::any} |
-  #   :unknown
+  # @callback route(request::any) :: {:ok, command} | error
 
-  # @callback init(id::any) ::
-  #   {:ok, default_state::any} |
-  #   {:error, reason::any}
+  # @callback init(id::any) :: {:ok, initial_state::any} | error
 
-  # @callback fetch(id::any, default_state::any) ::
+  # @callback fetch(id::any, initial_state::any) :: {:ok, state::any} | error
+
+  # @callback store(state::any) :: :ok | error
+
+  # @callback check(state::any) |
   #   {:ok, state::any} |
-  #   {:error, reason::any}
+  #   {:ok, state::any, events} |
+  #   {:ok, state::any, events, commands} |
+  #   {:error, reason::any} |
+  #   {:error, reason::any, events} |
+  #   {:error, reason::any, events, commands}
 
   # @callback handle(command, state::any) ::
-  #   {:ok, related_events} |
-  #   {:ok, related_events, related_commands} |
+  #   {:ok, events} |
+  #   {:ok, events, commands} |
   #   {:error, reason::any} |
-  #   {:error, reason::any, [events]} |
-  #   {:error, reason::any, [events], [commands]}
+  #   {:error, reason::any, events} |
+  #   {:error, reason::any, events, commands}
 
-  # @callback rollback(command, state::any) ::
-  #   {:ok, related_events} |
-  #   {:error, reason::any}
+  # @callback rollback(command, state::any) :: {:ok, events} | error
 
-  # @callback process(event, state::any) ::
-  #   state::any | {:error, reason}
+  # @callback process(event, state::any) :: state::any | error
+
 
   def start_link(id, module) do
     GenServer.start_link(__MODULE__, %{id: id, module: module, aggregate: nil})
@@ -44,9 +46,13 @@ defmodule Veggy.Aggregate do
     GenServer.cast(pid, {:rollback, command})
   end
 
+  def init(%{id: id, module: module}) do
+    with {:ok, initial_state} <- module.init(id),
+         {:ok, aggregate_state} <- module.fetch(id, initial_state) do
+      {:ok, %{id: id, module: module, aggregate: aggregate_state}}
+    end
+  end
 
-  def handle_cast({op, %{"command" => _} = command}, %{aggregate: nil} = state),
-    do: handle_cast({op, command}, %{state | aggregate: do_init(state)})
 
   def handle_cast({:handle, %{"command" => _} = command}, state) do
     Veggy.EventStore.emit(received(command))
@@ -88,8 +94,6 @@ defmodule Veggy.Aggregate do
     {:noreply, %{state | aggregate: aggregate_state}}
   end
 
-  def handle_info({:event, _} = event, %{aggregate: nil} = state),
-    do: handle_info(event, %{state | aggregate: do_init(state)})
   def handle_info({:event, event}, state) do
     aggregate_state = process_events([event], state.module, state.aggregate)
     {:noreply, %{state | aggregate: aggregate_state}}
@@ -100,7 +104,7 @@ defmodule Veggy.Aggregate do
   end
 
 
-  def handle_command(command, aggregate_module, aggregate_state) do
+  defp handle_command(command, aggregate_module, aggregate_state) do
     case aggregate_module.handle(command, aggregate_state) do
       {:ok, event} when is_map(event) -> {succeeded(command), [event], []}
       {:ok, events} when is_list(events) -> {succeeded(command), events, []}
@@ -113,7 +117,7 @@ defmodule Veggy.Aggregate do
     end
   end
 
-  def rollback_command(command, aggregate_module, aggregate_state) do
+  defp rollback_command(command, aggregate_module, aggregate_state) do
     case aggregate_module.rollback(command, aggregate_state) do
       {:ok, event} when is_map(event) -> {rolledback(command), [event]}
       {:ok, events} when is_list(events) -> {rolledback(command), events}
@@ -122,37 +126,30 @@ defmodule Veggy.Aggregate do
     end
   end
 
-  def correlate_outcome(outcome, events, {_, commands}),
+  defp correlate_outcome(outcome, events, {_, commands}),
     do: correlate_outcome(outcome, events, commands)
-  def correlate_outcome(outcome, events, commands) do
+  defp correlate_outcome(outcome, events, commands) do
     outcome
     |> Map.put("events", Enum.map(events, &Map.get(&1, "_id")))
     |> Map.put("commands", Enum.map(commands, &Map.get(&1, "_id")))
   end
 
-  def route_commands(parent, {:fork, commands}), do: Veggy.Transaction.ForkAndJoin.start(parent, commands)
-  # def route_commands(parent, {:chain, commands}), do: Veggy.Transaction.Chain.start(parent, commands)
-  # def route_commands(parent, {:forward, command}), do: Veggy.Transaction.Forward.start(parent, command)
-  def route_commands(_parent, commands) do
+  defp route_commands(parent, {:fork, commands}), do: Veggy.Transaction.ForkAndJoin.start(parent, commands)
+  # defp route_commands(parent, {:chain, commands}), do: Veggy.Transaction.Chain.start(parent, commands)
+  # defp route_commands(parent, {:forward, command}), do: Veggy.Transaction.Forward.start(parent, command)
+  defp route_commands(_parent, commands) do
     # TODO: Veggy.Transaction.FireAndForget.start(parent, commands)
     Enum.each(commands, &Veggy.Aggregates.handle/1)
   end
 
-  def process_events(events, aggregate_module, aggregate_state) do
+  defp process_events(events, aggregate_module, aggregate_state) do
     aggregate_state = Enum.reduce(events, aggregate_state, &aggregate_module.process/2)
     aggregate_module.store(aggregate_state)
     aggregate_state
   end
 
-  def commit_events(events) do
+  defp commit_events(events) do
     Enum.each(events, &Veggy.EventStore.emit/1)
-  end
-
-
-  defp do_init(state) do
-    aggregate = state.module.init(state.id)
-    aggregate = state.module.fetch(state.id, aggregate)
-    aggregate
   end
 
   defp received(%{"command" => _, "_id" => id} = command),
