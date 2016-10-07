@@ -67,6 +67,21 @@ defmodule Veggy.Aggregate.Timer do
     {:ok, %{"id" => id, "ticking" => false}}
   end
 
+  def check(%{"ticking" => true, "pomodoro_id" => pomodoro_id} = aggregate) do
+    event = %{"event" => "PomodoroVoided",
+              "pomodoro_id" => pomodoro_id,
+              "user_id" => aggregate["user_id"],
+              "aggregate_id" => aggregate["id"],
+              "timer_id" => aggregate["id"],
+              "reason" => "Inconsistent state at startup",
+              "_id" => Veggy.UUID.new}
+    {:ok, aggregate, [event]}
+  end
+  def check(aggregate) do
+    {:ok, aggregate}
+  end
+
+
   def handle(%{"command" => "CreateTimer", "user_id" => user_id} = command, aggregate) do
     {:ok, %{"event" => "TimerCreated",
             "command_id" => command["_id"],

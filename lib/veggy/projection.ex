@@ -10,21 +10,14 @@ defmodule Veggy.Projection do
   # @type event_filter :: event_type | (event -> bool) | [event_fiter]
   # @type error :: {:error, reason :: any}
   #
-  # defcallback init() :: {:ok, default :: record, event_filter} | error
-  # defcallback identity(event) :: {:ok, record_id :: any} | error
-  #
-  # ### Storage dependent
-  #
-  # defcallback offset() :: {:ok, offset} | error
-  # defcallback fetch(record_id :: any) :: {:ok, record} | error
-  # defcallback store(record, offset) :: :ok | error
-  # defcallback delete(record) :: :ok | error
-  # defcallback query(name :: String.t, parameters :: Map.t) :: {:ok, [record]} | error
-  #
-  # ### Business logic
-  #
-  # defcallback process(event, record) ::
-  #   record | {:hold, expected :: event_filter} | :skip | :delete | error
+  # @callback init() :: {:ok, default :: record, event_filter} | error
+  # @callback identity(event) :: {:ok, record_id :: any} | error
+  # @callback offset() :: {:ok, offset} | error
+  # @callback fetch(record_id :: any) :: {:ok, record} | error
+  # @callback store(record, offset) :: :ok | error
+  # @callback delete(record) :: :ok | error
+  # @callback query(name :: String.t, parameters :: Map.t) :: {:ok, [record]} | error
+  # @callback process(event, record) :: record | {:hold, expected :: event_filter} | :skip | :delete | error
 
 
   @spec events_where(module, where_clause :: {key :: atom, value :: any}, limit :: non_neg_integer) :: [Map.t]
@@ -48,7 +41,6 @@ defmodule Veggy.Projection do
       delete: fn(record, _offset) -> Agent.update(pid, &Map.delete(&1, record["_id"])) end
     }
 
-    # TODO: adopt a fuse strategy, after the first event that is ok we should not accept any more errors
     Enum.each(events, fn(event) ->
       try do
         do_process(stub, event, 0)

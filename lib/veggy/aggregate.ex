@@ -18,10 +18,10 @@ defmodule Veggy.Aggregate do
   # @callback check(state::any) |
   #   {:ok, state::any} |
   #   {:ok, state::any, events} |
-  #   {:ok, state::any, events, commands} |
+  #   {:ok, state::any, events, command | [command]} |
   #   {:error, reason::any} |
   #   {:error, reason::any, events} |
-  #   {:error, reason::any, events, commands}
+  #   {:error, reason::any, events, command | [command]}
 
   # @callback handle(command, state::any) ::
   #   {:ok, events} |
@@ -48,11 +48,38 @@ defmodule Veggy.Aggregate do
 
   def init(%{id: id, module: module}) do
     with {:ok, initial_state} <- module.init(id),
-         {:ok, aggregate_state} <- module.fetch(id, initial_state) do
+         {:ok, aggregate_state} <- module.fetch(id, initial_state),
+         {:ok, aggregate_state} <- check_state(module, aggregate_state) do
       {:ok, %{id: id, module: module, aggregate: aggregate_state}}
     end
   end
 
+  defp check_state(module, state) do
+    case module.check(state) do
+      {:ok, state} ->
+        {:ok, state}
+      {:ok, state, events} ->
+        state = process_events(events, module, state)
+        commit_events(events)
+        {:ok, state}
+      {:ok, state, events, commands} ->
+        state = process_events(events, module, state)
+        commit_events(events)
+        route_commands(commands)
+        {:ok, state}
+      {:error, reason} ->
+        {:error, reason}
+      {:error, reason, events} ->
+        process_events(events, module, state)
+        commit_events(events)
+        {:error, reason}
+      {:error, reason, events, commands} ->
+        process_events(events, module, state)
+        commit_events(events)
+        route_commands(commands)
+        {:error, reason}
+    end
+  end
 
   def handle_cast({:handle, %{"command" => _} = command}, state) do
     Veggy.EventStore.emit(received(command))
@@ -134,14 +161,18 @@ defmodule Veggy.Aggregate do
     |> Map.put("commands", Enum.map(commands, &Map.get(&1, "_id")))
   end
 
-  defp route_commands(parent, {:fork, commands}), do: Veggy.Transaction.ForkAndJoin.start(parent, commands)
-  # defp route_commands(parent, {:chain, commands}), do: Veggy.Transaction.Chain.start(parent, commands)
-  # defp route_commands(parent, {:forward, command}), do: Veggy.Transaction.Forward.start(parent, command)
-  defp route_commands(_parent, commands) do
-    # TODO: Veggy.Transaction.FireAndForget.start(parent, commands)
-    Enum.each(commands, &Veggy.Aggregates.handle/1)
+  defp route_commands(command) when is_map(command), do: route_commands([command])
+  defp route_commands(commands) do
+    Enum.each(commands, &Veggy.Aggregates.handle/1) # Veggy.Transaction.FireAndForget.start(commands)
   end
+  defp route_commands(parent, {:fork, commands}), do: Veggy.Transaction.ForkAndJoin.start(parent, commands)
+  defp route_commands(_parent, {:chain, _commands}), do: raise "unimplemented" # Veggy.Transaction.Chain.start(parent, commands)
+  defp route_commands(_parent, {:forward, _command}), do: raise "unimplemented" # Veggy.Transaction.Forward.start(parent, command)
+  defp route_commands(_parent, command) when is_map(command), do: route_commands([command])
+  defp route_commands(_parent, commands), do: route_commands(commands)
 
+  defp process_events(event, aggregate_module, aggregate_state) when is_map(event),
+    do: process_events([event], aggregate_module, aggregate_state)
   defp process_events(events, aggregate_module, aggregate_state) do
     aggregate_state = Enum.reduce(events, aggregate_state, &aggregate_module.process/2)
     aggregate_module.store(aggregate_state)

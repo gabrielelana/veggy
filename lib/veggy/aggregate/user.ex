@@ -17,6 +17,11 @@ defmodule Veggy.Aggregate.User do
   end
 
 
+  def check(state) do
+    {:ok, state}
+  end
+
+
   def handle(%{"command" => "Login"} = command, aggregate) do
     event = %{"event" => "LoggedIn",
               "username" => command["username"],
