@@ -7,17 +7,12 @@ defmodule Veggy.WS do
   end
 
   def websocket_init(_type, req, _opts) do
+    Veggy.EventStore.subscribe(self, &match?(%{"event" => _}, &1))
     {:ok, req, %{}, @timeout}
   end
 
   def websocket_handle({:text, "ping"}, req, state) do
     message = Poison.encode!(%{message: "pong"})
-    {:reply, {:text, message}, req, state}
-  end
-  def websocket_handle({:text, "login:" <> username}, req, state) do
-    message = Poison.encode!(%{message: "ok"})
-    # TODO: Veggy.Aggregate.User.user_id(username)
-    Veggy.EventStore.subscribe(self, &related_to_user("user/#{username}", &1))
     {:reply, {:text, message}, req, state}
   end
   def websocket_handle({_kind, _message}, req, state) do
@@ -34,7 +29,4 @@ defmodule Veggy.WS do
   def websocket_terminate(_reason, _req, _state) do
     :ok
   end
-
-  defp related_to_user(user_id, %{"event" => _, "user_id" => user_id}), do: true
-  defp related_to_user(_, _), do: false
 end
