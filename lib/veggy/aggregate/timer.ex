@@ -70,5 +70,5 @@ defmodule Veggy.Aggregate.Timer do
   def process(%{"event" => "PomodoroSquashed"}, s),
     do: %{s | "ticking" => false} |> Map.delete("pomodoro_id")
   def process(%{"event" => "PomodoroCompleted"}, s),
-    do: %{s | "ticking" => false}
+    do: %{s | "ticking" => false} |> Map.delete("pomodoro_id")
 end
