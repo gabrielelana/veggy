@@ -27,7 +27,7 @@ defmodule Veggy.Aggregate.Timer do
   end
   def handle(%{"command" => "StartPomodoro"}, %{"ticking" => true}), do: {:error, "Pomodoro is ticking"}
   def handle(%{"command" => "StartPomodoro"} = c, s) do
-    {:ok, pomodoro_id} = Veggy.Countdown.start(c["duration"], s["id"], c["_id"])
+    {:ok, pomodoro_id} = Veggy.Countdown.start(c["duration"], s["id"], s["user_id"], c["_id"])
     {:ok, event("PomodoroStarted",
         pomodoro_id: pomodoro_id,
         duration: c["duration"],

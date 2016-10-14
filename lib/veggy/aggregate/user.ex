@@ -2,8 +2,10 @@ defmodule Veggy.Aggregate.User do
   use Veggy.Aggregate
   use Veggy.MongoDB.Aggregate, collection: "aggregate.users"
 
+  def user_id(username), do: username
+
   def route(%{"command" => "Login", "username" => username}) do
-    {:ok, command("Login", username, username: username)}
+    {:ok, command("Login", user_id(username), username: username)}
   end
 
   def init(id) do
