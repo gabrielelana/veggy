@@ -29,14 +29,14 @@ defmodule Veggy.AcceptanceTest do
     subscribe_to_event %{"event" => "PomodoroCompleted"}
     subscribe_to_event %{"event" => "CommandFailed"}
 
-    send_command %{"command" => "StartPomodoro", "duration" => 50}
+    send_command %{"command" => "StartPomodoro", "duration" => 100}
     {:event, %{"pomodoro_id" => pomodoro_id}} = assert_receive {:event, %{"event" => "PomodoroStarted"}}
 
     command_id = send_command %{"command" => "StartPomodoro", "duration" => 10}
     command_id = Veggy.MongoDB.ObjectId.from_string(command_id)
     assert_receive {:event, %{"event" => "CommandFailed", "command_id" => ^command_id}}
 
-    assert_receive {:event, %{"event" => "PomodoroCompleted", "pomodoro_id" => ^pomodoro_id}}
+    assert_receive {:event, %{"event" => "PomodoroCompleted", "pomodoro_id" => ^pomodoro_id}}, 200
   end
 
   test "command SquashPomodoro" do
