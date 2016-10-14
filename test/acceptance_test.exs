@@ -1,5 +1,5 @@
 defmodule Veggy.AcceptanceTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case
   use Plug.Test
 
   import Plug.Conn
