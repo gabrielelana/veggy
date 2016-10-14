@@ -4,13 +4,16 @@ defmodule Veggy.Aggregate.Timer do
 
   @default_duration 1_500_000   # 25 minutes in milliseconds
 
+  defp aggregate_id(%{"timer_id" => timer_id}),
+    do: Veggy.MongoDB.ObjectId.from_string(timer_id)
+
   def route(%{"command" => "StartPomodoro"} = p) do
-    {:ok, command("StartPomodoro", "timer",
+    {:ok, command("StartPomodoro", aggregate_id(p),
         duration: Map.get(p, "duration", @default_duration),
         description: Map.get(p, "description", ""))}
   end
   def route(%{"command" => "SquashPomodoro"} = p) do
-    {:ok, command("SquashPomodoro", "timer",
+    {:ok, command("SquashPomodoro", aggregate_id(p),
         reason: Map.get(p, "reason", ""))}
   end
 
@@ -19,6 +22,9 @@ defmodule Veggy.Aggregate.Timer do
     {:ok, %{"id" => id, "ticking" => false}}
   end
 
+  def handle(%{"command" => "CreateTimer", "user_id" => user_id}, _) do
+    {:ok, event("TimerCreated", user_id: user_id)}
+  end
   def handle(%{"command" => "StartPomodoro"}, %{"ticking" => true}), do: {:error, "Pomodoro is ticking"}
   def handle(%{"command" => "StartPomodoro"} = c, s) do
     {:ok, pomodoro_id} = Veggy.Countdown.start(c["duration"], s["id"], c["_id"])
@@ -34,6 +40,8 @@ defmodule Veggy.Aggregate.Timer do
         reason: c["reason"])}
   end
 
+  def process(%{"event" => "TimerCreated", "user_id" => user_id}, s),
+    do: Map.put(s, "user_id", user_id)
   def process(%{"event" => "PomodoroStarted", "pomodoro_id" => pomodoro_id}, s),
     do: %{s | "ticking" => true} |> Map.put("pomodoro_id", pomodoro_id)
   def process(%{"event" => "PomodoroSquashed"}, s),
