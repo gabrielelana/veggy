@@ -44,4 +44,10 @@ defmodule Veggy.ProjectionPomodoriTest do
     assert %{"status" => "squashed"} = process event, record
     assert %{"squashed_at" => :received_at} = process event, record
   end
+
+  test "process PomodoroVoided" do
+    record = %{}
+    event = %{"event" => "PomodoroVoided"}
+    assert :delete = process event, record
+  end
 end
