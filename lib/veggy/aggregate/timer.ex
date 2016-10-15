@@ -1,6 +1,7 @@
 defmodule Veggy.Aggregate.Timer do
   use Veggy.Aggregate
   use Veggy.MongoDB.Aggregate, collection: "aggregate.timers"
+  use Testable
 
   @default_duration 1_500_000   # 25 minutes in milliseconds
 
@@ -26,6 +27,26 @@ defmodule Veggy.Aggregate.Timer do
   def route(%{"command" => "SquashSharedPomodoro"} = p) do
     {:ok, command("SquashSharedPomodoro", aggregate_id(p),
         reason: Map.get(p, "reason", ""))}
+  end
+  def route(%{"command" => "TrackPomodoroCompleted"} = p) do
+    route_track(p, "completed_at")
+  end
+  def route(%{"command" => "TrackPomodoroSquashed"} = p) do
+    route_track(p, "squashed_at")
+  end
+
+  defp route_track(p, ended_field) do
+    with {:ok, started_at} <- Timex.parse(p["started_at"], "{RFC3339z}"),
+         {:ok, ended_at} <- Timex.parse(p[ended_field], "{RFC3339z}") do
+      {:ok, command(p["command"], aggregate_id(p),
+          [started_at: started_at,
+           duration: Timex.diff(ended_at, started_at, :milliseconds),
+           description: Map.get(p, "description", "")]
+          |> Keyword.put(String.to_atom(ended_field), ended_at))}
+    else
+      _ ->
+        {:error, "Wrong time format"}
+    end
   end
 
   def init(id) do
@@ -71,6 +92,45 @@ defmodule Veggy.Aggregate.Timer do
       end)
     {:ok, [], commands}
   end
+  def handle(%{"command" => "TrackPomodoroCompleted"} = c, s) do
+    handle_track(c, "completed_at", "PomodoroCompletedTracked", s["id"])
+  end
+  def handle(%{"command" => "TrackPomodoroSquashed"} = c, s) do
+    handle_track(c, "squashed_at", "PomodoroSquashedTracked", s["id"])
+  end
+
+  defp handle_track(c, ended_field, event_name, aggregate_id) do
+    if Timex.before?(c[ended_field], Timex.now) do
+
+      events = Veggy.Projection.events_where(Veggy.Projection.Pomodori, {:aggregate_id, aggregate_id})
+      pomodori = Veggy.Projection.process(Veggy.Projection.Pomodori, events)
+
+      if compatible?(pomodori, c["started_at"], c[ended_field]) do
+        {:ok, event(event_name,
+            [started_at: c["started_at"],
+             duration: c["duration"],
+             description: c["description"]]
+            |> Keyword.put(String.to_atom(ended_field), c[ended_field]))}
+      else
+        {:error, "Another pomodoro was ticking between #{c["started_at"]} and #{c[ended_field]}"}
+      end
+    else
+      {:error, "Seems like you want to track a pomodoro that is not in the past... :-/"}
+    end
+  end
+
+  defpt compatible?(pomodori, started_at, ended_at) do
+    import Map, only: [put: 3, has_key?: 2]
+    import Timex, only: [after?: 2, before?: 2]
+    pomodori
+    |> Enum.map(fn
+      (%{"completed_at" => t} = p) -> put(p, "ended_at", t)
+      (%{"squashed_at" => t} = p) -> put(p, "ended_at", t)
+    end)
+    |> Enum.filter(fn(p) -> has_key?(p, "started_at") && has_key?(p, "ended_at") end)
+    |> Enum.map(fn(p) -> {p["started_at"], p["ended_at"]} end)
+    |> Enum.all?(fn({t1, t2}) -> after?(started_at, t2) || before?(ended_at, t1) end)
+  end
 
   def rollback(%{"command" => "StartPomodoro"}, %{"ticking" => false}), do: {:error, "No pomodoro to rollback"}
   def rollback(%{"command" => "StartPomodoro"}, %{"pomodoro_id" => pomodoro_id}) do
@@ -88,4 +148,8 @@ defmodule Veggy.Aggregate.Timer do
     do: %{s | "ticking" => false} |> Map.delete("pomodoro_id") |> Map.delete("shared_with")
   def process(%{"event" => "PomodoroVoided"}, s),
     do: %{s | "ticking" => false} |> Map.delete("pomodoro_id") |> Map.delete("shared_with")
+  def process(%{"event" => "PomodoroCompletedTracked"}, s),
+    do: s
+  def process(%{"event" => "PomodoroSquashedTracked"}, s),
+    do: s
 end

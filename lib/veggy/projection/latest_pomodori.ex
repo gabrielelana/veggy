@@ -2,7 +2,7 @@ defmodule Veggy.Projection.LatestPomodori do
   use Veggy.MongoDB.Projection,
     collection: "projection.latest_pomodori",
     events: ["LoggedIn", "PomodoroStarted", "PomodoroSquashed", "PomodoroCompleted",
-             "PomodoroVoided"],
+             "PomodoroVoided", "PomodoroCompletedTracked", "PomodoroSquashedTracked"],
     identity: "timer_id"
 
   def process(%{"event" => "LoggedIn"} = event, record) do
@@ -34,6 +34,30 @@ defmodule Veggy.Projection.LatestPomodori do
   end
   def process(%{"event" => "PomodoroVoided"}, %{"_last" => last}) do
     last
+  end
+  def process(%{"event" => "PomodoroCompletedTracked", "started_at" => s1}, %{"started_at" => s2})
+  when s1 < s2 do
+    :skip
+  end
+  def process(%{"event" => "PomodoroCompletedTracked"} = event, record) do
+    record
+    |> Map.put("started_at", event["started_at"])
+    |> Map.put("completed_at", event["completed_at"])
+    |> Map.put("duration", event["duration"])
+    |> Map.put("status", "completed")
+    |> Map.delete("squashed_at")
+  end
+  def process(%{"event" => "PomodoroSquashedTracked", "squashed_at" => s1}, %{"squashed_at" => s2})
+  when s1 < s2 do
+    :skip
+  end
+  def process(%{"event" => "PomodoroSquashedTracked"} = event, record) do
+    record
+    |> Map.put("started_at", event["started_at"])
+    |> Map.put("squashed_at", event["squashed_at"])
+    |> Map.put("duration", event["duration"])
+    |> Map.put("status", "squashed")
+    |> Map.delete("completed_at")
   end
 
   def query("latest-pomodoro", %{"timer_id" => timer_id}) do
