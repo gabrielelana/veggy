@@ -14,8 +14,8 @@ defmodule Veggy.Transaction.ForkAndJoin do
   def handle_cast(:start, %{commands: commands} = state) do
     Enum.each(commands, fn(command) ->
       command_id = command["id"]
-      Veggy.EventStore.subscribe(self, &match?(%{"event" => "CommandSucceeded", "command_id" => ^command_id}, &1))
-      Veggy.EventStore.subscribe(self, &match?(%{"event" => "CommandFailed", "command_id" => ^command_id}, &1))
+      Veggy.EventStore.subscribe(self(), &match?(%{"event" => "CommandSucceeded", "command_id" => ^command_id}, &1))
+      Veggy.EventStore.subscribe(self(), &match?(%{"event" => "CommandFailed", "command_id" => ^command_id}, &1))
       Veggy.Aggregates.handle(command)
     end)
     state =
@@ -56,12 +56,12 @@ defmodule Veggy.Transaction.ForkAndJoin do
 
   def handle_info({:event, %{"event" => "CommandSucceeded"} = event}, %{waiting_for: waiting_for} = state) do
     state = %{state | waiting_for: waiting_for -- [event["command_id"]], succeeded: [event["command_id"]]}
-    if [] == state.waiting_for, do: GenServer.cast(self, :done)
+    if [] == state.waiting_for, do: GenServer.cast(self(), :done)
     {:noreply, state}
   end
   def handle_info({:event, %{"event" => "CommandFailed"} = event}, %{waiting_for: waiting_for} = state) do
     state = %{state | waiting_for: waiting_for -- [event["command_id"]], failed: [event["command_id"]]}
-    if [] == state.waiting_for, do: GenServer.cast(self, :done)
+    if [] == state.waiting_for, do: GenServer.cast(self(), :done)
     {:noreply, state}
   end
 end

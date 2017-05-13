@@ -21,13 +21,14 @@ config :logger, :console,
   format: "$date $time [$level] $levelpad$message\n",
   colors: [info: :green]
 
-
 # It is also possible to import configuration files, relative to this
 # directory. For example, you can emulate configuration per environment
 # by uncommenting the line below and defining dev.exs, test.exs and such.
 # Configuration from the imported file will override the ones defined
 # here (which is why it is important to import them last).
 
-with file <- Path.join(__DIR__, "#{Mix.env}.exs") do
-  if File.exists?(file), do: import_config(file)
+with file <- "#{Mix.env}.exs" do
+  if File.exists?(Path.join(__DIR__, file)) do
+    import_config(file)
+  end
 end

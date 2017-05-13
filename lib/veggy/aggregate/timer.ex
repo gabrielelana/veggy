@@ -63,7 +63,7 @@ defmodule Veggy.Aggregate.Timer do
   end
 
   def init(id) do
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroCompleted", "aggregate_id" => ^id}, &1))
+    Veggy.EventStore.subscribe(self(), &match?(%{"event" => "PomodoroCompleted", "aggregate_id" => ^id}, &1))
     {:ok, %{"id" => id, "ticking" => false}}
   end
 

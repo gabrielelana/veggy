@@ -4,7 +4,7 @@ defmodule Veggy.EventStore do
   @collection "events"
 
   def start_link do
-    offset = offset_of_last_event + 1
+    offset = offset_of_last_event() + 1
     GenServer.start_link(__MODULE__, %{offset: offset, subscriptions: %{}}, name: __MODULE__)
   end
 
@@ -13,7 +13,7 @@ defmodule Veggy.EventStore do
   end
 
   def subscribe(pid, check) do
-    reference = make_ref
+    reference = make_ref()
     GenServer.cast(__MODULE__, {:subscribe, reference, check, pid})
     reference
   end

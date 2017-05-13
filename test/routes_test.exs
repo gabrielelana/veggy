@@ -9,7 +9,7 @@ defmodule Veggy.RoutesTest do
   end
 
   test "command StartPomodoro" do
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroCompleted"}, &1))
+    Veggy.EventStore.subscribe(self(), &match?(%{"event" => "PomodoroCompleted"}, &1))
 
     timer_id = Veggy.UUID.new
     command = %{"command" => "StartPomodoro", "timer_id" => timer_id, "duration" => 10}
@@ -22,7 +22,7 @@ defmodule Veggy.RoutesTest do
   end
 
   test "command StartPomodoro with description" do
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroStarted"}, &1))
+    Veggy.EventStore.subscribe(self(), &match?(%{"event" => "PomodoroStarted"}, &1))
 
     timer_id = Veggy.UUID.new
     description = "Something to do"
@@ -36,8 +36,8 @@ defmodule Veggy.RoutesTest do
   end
 
   test "command SquashPomodoro" do
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroCompleted"}, &1))
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroSquashed"}, &1))
+    Veggy.EventStore.subscribe(self(), &match?(%{"event" => "PomodoroCompleted"}, &1))
+    Veggy.EventStore.subscribe(self(), &match?(%{"event" => "PomodoroSquashed"}, &1))
 
     timer_id = Veggy.UUID.new
     command = %{"command" => "StartPomodoro", "timer_id" => timer_id, "duration" => 1000}
@@ -57,7 +57,7 @@ defmodule Veggy.RoutesTest do
   end
 
   test "command Login" do
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "LoggedIn"}, &1))
+    Veggy.EventStore.subscribe(self(), &match?(%{"event" => "LoggedIn"}, &1))
 
     conn = conn(:post, "/commands", Poison.encode! %{"command" => "Login", "username" => "gabriele"})
     |> put_req_header("content-type", "application/json")
@@ -69,7 +69,7 @@ defmodule Veggy.RoutesTest do
   end
 
   test "command TrackPomodoroCompleted" do
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroCompletedTracked"}, &1))
+    Veggy.EventStore.subscribe(self(), &match?(%{"event" => "PomodoroCompletedTracked"}, &1))
 
     duration = 60000
     started_at = Timex.add(Timex.now, Timex.Duration.from_hours(1) |> Timex.Duration.invert)
@@ -91,8 +91,8 @@ defmodule Veggy.RoutesTest do
   end
 
   test "command TrackPomodoroCompleted when there's another pomodoro clashing" do
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroCompletedTracked"}, &1))
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "CommandFailed"}, &1))
+    Veggy.EventStore.subscribe(self(), &match?(%{"event" => "PomodoroCompletedTracked"}, &1))
+    Veggy.EventStore.subscribe(self(), &match?(%{"event" => "CommandFailed"}, &1))
 
     duration = 60000
     timer_id = Veggy.UUID.new
@@ -130,7 +130,7 @@ defmodule Veggy.RoutesTest do
   end
 
   test "command TrackPomodoroSquashed" do
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroSquashedTracked"}, &1))
+    Veggy.EventStore.subscribe(self(), &match?(%{"event" => "PomodoroSquashedTracked"}, &1))
 
     duration = 60000
     started_at = Timex.add(Timex.now, Timex.Duration.from_hours(1) |> Timex.Duration.invert)
@@ -152,8 +152,8 @@ defmodule Veggy.RoutesTest do
   end
 
   test "command TrackPomodoroSquashed when there's another pomodoro clashing" do
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "PomodoroSquashedTracked"}, &1))
-    Veggy.EventStore.subscribe(self, &match?(%{"event" => "CommandFailed"}, &1))
+    Veggy.EventStore.subscribe(self(), &match?(%{"event" => "PomodoroSquashedTracked"}, &1))
+    Veggy.EventStore.subscribe(self(), &match?(%{"event" => "CommandFailed"}, &1))
 
     duration = 60000
     timer_id = Veggy.UUID.new

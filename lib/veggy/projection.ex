@@ -59,7 +59,7 @@ defmodule Veggy.Projection do
   def init(%{module: module}) do
     {:ok, default, events} = module.init
     {:ok, offset} = module.offset
-    Process.send_after(self, :process, @polling_interval)
+    Process.send_after(self(), :process, @polling_interval)
     {:ok, %{module: module, default: default, offset: offset, filter: to_filter(events)}}
   end
 
@@ -68,7 +68,7 @@ defmodule Veggy.Projection do
     events = Veggy.EventStore.events_where({:offset_after, state.offset}, state.filter)
     # IO.inspect({:events, Enum.count(events)})
     offset = Enum.reduce(events, state.offset, &do_process(state.module, &1, &2))
-    Process.send_after(self, :process, @polling_interval)
+    Process.send_after(self(), :process, @polling_interval)
     {:noreply, %{state|offset: offset}}
   end
 

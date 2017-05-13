@@ -11,10 +11,10 @@ defmodule Veggy do
       Veggy.MongoDB.child_spec,
       worker(Veggy.EventStore, []),
       worker(Veggy.Countdown, []),
-      aggregates,
-      projections,
+      aggregates(),
+      projections(),
       Plug.Adapters.Cowboy.child_spec(:http, Veggy.HTTP, [],
-        [port: 4000, dispatch: dispatch]),
+        [port: 4000, dispatch: dispatch()]),
     ] |> Enum.reject(&is_nil/1)
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html

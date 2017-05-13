@@ -4,7 +4,7 @@ defmodule Veggy.MongoDB do
   def child_spec do
     Supervisor.Spec.worker(__MODULE__,
       [[hostname: System.get_env("MONGODB_HOST") || "localhost",
-        database: System.get_env("MONGODB_DBNAME") || dbname,
+        database: System.get_env("MONGODB_DBNAME") || dbname(),
         username: System.get_env("MONGODB_USERNAME"),
         password: System.get_env("MONGODB_PASSWORD"),
        ]])
@@ -58,7 +58,7 @@ defmodule Veggy.MongoDB do
     Mongo.run_command(Veggy.MongoDB,
       %{createIndexes: collection_name,
         indexes: [
-          %{"ns" => "#{dbname}.#{collection_name}",
+          %{"ns" => "#{dbname()}.#{collection_name}",
             "key" => index_keys,
             "name" => generate_index_name(index_keys)
            }
