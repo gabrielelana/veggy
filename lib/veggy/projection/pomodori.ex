@@ -61,17 +61,47 @@ defmodule Veggy.Projection.Pomodori do
 
   def query("pomodori-of-the-day", %{"day" => day, "timer_id" => timer_id} = parameters) do
     timer_id = Veggy.MongoDB.ObjectId.from_string(timer_id)
+    case day_to_mongo_datetime_range(day) do
+      {:ok, beginning_of_day, end_of_day} ->
+        find(%{"started_at" => %{"$gte" => beginning_of_day, "$lte" => end_of_day},
+               "timer_id" => timer_id,
+              })
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def query("tags-of-the-day", %{"day" => day, "timer_id" => timer_id} = parameters) do
+    timer_id = Veggy.MongoDB.ObjectId.from_string(timer_id)
+    case day_to_mongo_datetime_range(day) do
+      {:ok, beginning_of_day, end_of_day} ->
+        {:ok, pomodori} = find(%{"started_at" => %{"$gte" => beginning_of_day, "$lte" => end_of_day},
+                                 "timer_id" => timer_id,
+                                })
+
+        {:ok, pomodori
+        |> Enum.filter(fn(p) -> Map.has_key?(p, "completed_at") end)
+        |> Enum.map(&Map.take(&1, ["tags", "duration"]))
+        |> Enum.flat_map(fn(p) -> for tag <- p["tags"], do: %{"tag" => tag, "pomodori" => 1, "duration" => p["duration"]} end)
+        |> Enum.group_by(&Map.get(&1, "tag"))
+        |> Map.values()
+        |> Enum.map(&Enum.reduce(&1, fn(p, a) -> %{a|"pomodori" => a["pomodori"] + 1, "duration" => a["duration"] + p["duration"]} end))
+        }
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp day_to_mongo_datetime_range(day) do
     case Timex.parse(day, "{YYYY}-{0M}-{0D}") do
       {:ok, day} ->
         beginning_of_day =
           day |> Timex.beginning_of_day |> Timex.to_datetime |> Veggy.MongoDB.DateTime.from_datetime
         end_of_day =
           day |> Timex.end_of_day |> Timex.to_datetime |> Veggy.MongoDB.DateTime.from_datetime
-        find(%{"started_at" => %{"$gte" => beginning_of_day, "$lte" => end_of_day},
-               "timer_id" => timer_id,
-              })
+        {:ok, beginning_of_day, end_of_day}
       {:error, reason} ->
-        {:error, "day=#{parameters["day"]}: #{reason}"}
+        {:error, "day=#{day}: #{reason}"}
     end
   end
 end
