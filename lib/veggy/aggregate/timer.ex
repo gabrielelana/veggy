@@ -101,6 +101,7 @@ defmodule Veggy.Aggregate.Timer do
             "timer_id" => aggregate["id"],
             "duration" => command["duration"],
             "description" => command["description"],
+            "tags" => Veggy.Task.extract_tags(command["description"]),
             "shared_with" => command["shared_with"],
             "_id" => Veggy.UUID.new}}
   end
@@ -155,6 +156,7 @@ defmodule Veggy.Aggregate.Timer do
                 "pomodoro_id" => Veggy.UUID.new,
                 "duration" => command["duration"],
                 "description" => command["description"],
+                "tags" => Veggy.Task.extract_tags(command["description"]),
                 "started_at" => command["started_at"],
                 ended_field => command[ended_field],
                 "user_id" => aggregate["user_id"],
@@ -170,7 +172,7 @@ defmodule Veggy.Aggregate.Timer do
     end
   end
 
-  # "TODO" => ensure that the current pomodoro has been started by the same command we are rolling back
+
   def rollback(%{"command" => "StartPomodoro"}, %{"ticking" => false}), do: {:error, "Pomodoro is not ticking"}
   def rollback(%{"command" => "StartPomodoro"} = command, %{"pomodoro_id" => pomodoro_id} = aggregate) do
     :ok = Veggy.Countdown.void(pomodoro_id)
