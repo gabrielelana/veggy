@@ -19,8 +19,7 @@ defmodule Veggy.WS do
   end
   def websocket_handle({:text, "login:" <> username}, req, %{:logged_in => false} = state) do
     message = Poison.encode!(%{message: "ok"})
-    # TODO: Veggy.Aggregate.User.user_id(username)
-    Veggy.EventStore.subscribe(self(), &related_to_user("user/#{username}", &1))
+    Veggy.EventStore.subscribe(self(), &related_to_user(Veggy.Aggregate.User.user_id(username), &1))
     {:reply, {:text, message}, req, %{state|:logged_in => true}}
   end
   def websocket_handle({_kind, _message}, req, state) do

@@ -3,10 +3,13 @@ defmodule Veggy.Aggregate.User do
   use Veggy.MongoDB.Aggregate, collection: "aggregate.users"
 
 
+  def user_id(username), do: "user/#{username}"
+
+
   def route(%{"command" => "Login", "username" => username} = params) do
     {:ok, %{"command" => params["command"],
             "username" => username,
-            "aggregate_id" => "user/#{username}",
+            "aggregate_id" => user_id(username),
             "aggregate_module" => __MODULE__,
             "_id" => Veggy.UUID.new}}
   end
