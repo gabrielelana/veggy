@@ -15,6 +15,7 @@ defmodule Veggy.Projection.Pomodori do
     |> Map.put("shared_with", event["shared_with"])
     |> Map.put("status", "started")
     |> Map.put("duration", event["duration"])
+    |> Map.put("description", event["description"])
   end
   def process(%{"event" => "PomodoroCompleted"} = event, record) do
     record
@@ -29,6 +30,7 @@ defmodule Veggy.Projection.Pomodori do
     |> Map.put("tags", event["tags"])
     |> Map.put("shared_with", [])
     |> Map.put("duration", event["duration"])
+    |> Map.put("description", event["description"])
     |> Map.put("completed_at", event["completed_at"])
     |> Map.put("status", "completed")
   end
@@ -40,6 +42,7 @@ defmodule Veggy.Projection.Pomodori do
     |> Map.put("tags", event["tags"])
     |> Map.put("shared_with", [])
     |> Map.put("duration", event["duration"])
+    |> Map.put("description", event["description"])
     |> Map.put("squashed_at", event["squashed_at"])
     |> Map.put("status", "squashed")
   end
@@ -59,7 +62,7 @@ defmodule Veggy.Projection.Pomodori do
     find(%{"timer_id" => timer_id, "tags" => %{"$in" => tags}})
   end
 
-  def query("pomodori-of-the-day", %{"day" => day, "timer_id" => timer_id} = parameters) do
+  def query("pomodori-of-the-day", %{"day" => day, "timer_id" => timer_id}) do
     timer_id = Veggy.MongoDB.ObjectId.from_string(timer_id)
     case day_to_mongo_datetime_range(day) do
       {:ok, beginning_of_day, end_of_day} ->
@@ -71,7 +74,7 @@ defmodule Veggy.Projection.Pomodori do
     end
   end
 
-  def query("tags-of-the-day", %{"day" => day, "timer_id" => timer_id} = parameters) do
+  def query("tags-of-the-day", %{"day" => day, "timer_id" => timer_id}) do
     timer_id = Veggy.MongoDB.ObjectId.from_string(timer_id)
     case day_to_mongo_datetime_range(day) do
       {:ok, beginning_of_day, end_of_day} ->
